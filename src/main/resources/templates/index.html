@@ -1,0 +1,33 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Kotlin Vertx Integration</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body, form {
+      height: 98%;
+    }
+
+    section {
+      width: 100%;
+      height: 100%;
+      background: skyblue;
+      border: 1px solid #eee;
+    }
+
+  </style>
+</head>
+<body>
+<form action="/catchFile" method="post">
+  <div style="width:inherit;height: inherit">
+    <textarea name="text" cols="20" style="width:50%;height: inherit"></textarea>
+    <button type="submit">get!</button>
+  </div>
+</form>
+</body>
+</html>

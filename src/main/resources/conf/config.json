@@ -1,0 +1,26 @@
+{
+  "files": {
+    "build": {
+      "resservice": [
+        "D:\\Workspaces\\Eclipse-O\\resservice\\target\\classes",
+        "D:\\Workspaces\\Eclipse-O\\resservice\\target\\resservice-8.0-RELEASE"
+      ],
+      "ires": [
+        "D:\\Workspaces\\Eclipse-O\\03 server\\out\\production\\03 server"
+      ]
+    },
+    "source": {
+      "D:\\Workspaces\\Eclipse-O\\resservice\\target\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\03 server\\out\\production\\03 server": [
+        "D:\\Workspaces\\Eclipse-O\\03 server\\src"
+      ]
+    },
+    "sourceToBuild": {
+      ".java": ".class"
+    },
+    "tmpFilePath": "D:\\zip"
+  }
+}
+
