@@ -13,7 +13,7 @@ public class Launcher extends VertxCommandLauncher implements VertxLifecycleHook
   }
 
   public static void executeCommand(String cmd, String... args) {
-    (new io.vertx.core.Launcher()).execute(cmd, args);
+    (new Launcher()).execute(cmd, args);
   }
   @Override
   public void beforeStartingVertx(VertxOptions options) {
