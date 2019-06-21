@@ -4,6 +4,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.impl.ConcurrentHashSet;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.services.FilesCatcher;
@@ -21,12 +22,17 @@ public class FilesCatcherImpl implements FilesCatcher {
     return filesCatcher;
   }
 
-  static JsonObject confBuild = null;
-  static JsonObject confSourse = null;
-  static Set<String> pathsBuild = null;
-  static Set<String> pathsSourse = null;
-  static Map sourceToBuild = null;
-  static String tmpFilePath = null;
+  public static FilesCatcher getInstance(JsonObject option) {
+    ((FilesCatcherImpl) filesCatcher).setConf(option);
+    return filesCatcher;
+  }
+
+  JsonObject confBuild = null;
+  JsonObject confSourse = null;
+  Set<String> pathsBuild = null;
+  Set<String> pathsSourse = null;
+  Map sourceToBuild = null;
+  String tmpFilePath = null;
 
   private FilesCatcherImpl() {
 
@@ -108,7 +114,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     }
   }
 
-  private static String fileNameCheck(String fileName) {
+  private String fileNameCheck(String fileName) {
     if (pathsSourse.size() != 0 && sourceToBuild.size() != 0) {
       String prefix = null;
       for (Object object : sourceToBuild.keySet()) {
@@ -132,7 +138,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     return fileName;
   }
 
-  private static void getFile(Set<String> successFile, Set<String> errorFile, String fileName) {
+  private void getFile(Set<String> successFile, Set<String> errorFile, String fileName) {
     try {
       fileName = fileNameCheck(fileName);
       File rootFile = new File(fileName);
@@ -149,12 +155,12 @@ public class FilesCatcherImpl implements FilesCatcher {
       }
     } catch (Exception e) {
       e.printStackTrace();
-      errorFile.add(fileName+" "+e.getMessage());
+      errorFile.add(fileName + " " + e.getMessage());
     } finally {
     }
   }
 
-  private static void getFileSub(Set<String> successFile, Set<String> errorFile, File rootFile, String[] files) {
+  private void getFileSub(Set<String> successFile, Set<String> errorFile, File rootFile, String[] files) {
     for (int i = 0; i < files.length; i++) {
       String subFileName = new StringBuilder(rootFile.getAbsolutePath()).append(File.separator).append(files[i]).toString();
       subFileName = fileNameCheck(subFileName);

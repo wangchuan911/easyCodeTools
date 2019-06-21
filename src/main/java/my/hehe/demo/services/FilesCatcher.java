@@ -17,8 +17,7 @@ import java.util.Set;
 @VertxGen
 public interface FilesCatcher {
   static FilesCatcher create(Vertx vertx,JsonObject jsonObject) {
-    FilesCatcher filesCatcher = FilesCatcherImpl.getInstance();
-    ((FilesCatcherImpl)filesCatcher).setConf(jsonObject);
+    FilesCatcher filesCatcher = FilesCatcherImpl.getInstance(jsonObject);
     new ServiceBinder(vertx).setAddress(FilesCatcher.class.getName())
       .register(FilesCatcher.class, filesCatcher)
       .completionHandler(Future.future());
