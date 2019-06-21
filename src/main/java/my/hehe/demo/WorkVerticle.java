@@ -9,7 +9,7 @@ public class WorkVerticle extends AbstractVerticle {
   @Override
   public void start(Future<Void> startFuture) throws Exception {
     try {
-      FilesCatcher filesCatcher = FilesCatcher.create(vertx, config());
+      FilesCatcher filesCatcher = FilesCatcher.create(vertx, config().getJsonObject("files"));
       startFuture.complete();
     } catch (Exception e) {
       startFuture.fail(e);

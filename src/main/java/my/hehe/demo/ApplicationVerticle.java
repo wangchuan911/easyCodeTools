@@ -24,8 +24,9 @@ public class ApplicationVerticle extends AbstractVerticle {
         .setConfig(vertx.getOrCreateContext().config());
       vertx.deployVerticle(WorkVerticle.class.getName(), workerDeploymentOptions);
 
-
-      vertx.deployVerticle(WebVerticle.class.getName());
+      DeploymentOptions webDeploymentOptions = new DeploymentOptions()
+        .setConfig(vertx.getOrCreateContext().config());
+      vertx.deployVerticle(WebVerticle.class.getName(), webDeploymentOptions);
     };
     return runner;
   }

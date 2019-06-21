@@ -29,7 +29,6 @@ public class FilesCatcherImpl implements FilesCatcher {
     return filesCatcher;
   }
 
-  JDBCClient jdbcClient = null;
   JsonObject confBuild = null;
   JsonObject confSourse = null;
   Set<String> pathsBuild = null;
@@ -50,17 +49,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     } else {
       return;
     }
-    {
-      JsonObject dbConfig = new JsonObject();
-      String var1 = config.getJsonObject("data").getString("data3");
-      String[] var2=var1.split("\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*");
-      dbConfig.put("url",var2[0]);
-      dbConfig.put("user",var2[1]);
-      dbConfig.put("password",var2[2]);
-      jdbcClient = JDBCClient.createNonShared(Vertx.vertx(), dbConfig);
-    }
 
-    config = config.getJsonObject("files");
     tmpFilePath = config.getString("tmpFilePath");
     JsonObject build = config.getJsonObject("build");
     Set<String> keys = build.getMap().keySet();
@@ -206,35 +195,25 @@ public class FilesCatcherImpl implements FilesCatcher {
           file.createNewFile();
           zipOutputStream = new ZipOutputStream(new FileOutputStream(file));
         }
-        BufferedInputStream bis = null;
         for (String file : successFile) {
+          int mode = this.getTextMode(file);
           try {
-            String zipFile = file;
-            if (pathsBuild != null && pathsBuild.size() != 0) {
-              for (String path : pathsBuild) {
-                if (zipFile.indexOf(path) == 0) {
-                  zipFile = zipFile.replace(path, confBuild.getString(path));
-                  break;
-                }
-              }
-            } else if (isWindows) {
-              zipFile = zipFile.substring(zipFile.indexOf(':') + 2);
+            switch (mode) {
+              case 0:
+                zipProjectFile(file, zipOutputStream);
+                break;
+              case 1:
+                zipDataFile(file, zipOutputStream);
+                break;
+              default:
+                successFile.remove(file);
+                continue;
             }
-            zipOutputStream.putNextEntry(new ZipEntry(zipFile));
-            bis = new BufferedInputStream(new FileInputStream(new File(file)));
-            /*int b;
-            while ((b = bis.read()) != -1) {
-              zipOutputStream.write(b); // 将字节流写入当前zip目录
-            }*/
-            this.writeZipStream(bis, zipOutputStream);
-            System.out.println("create zip file :" + zipFile);
           } catch (Exception e) {
             e.printStackTrace();
             successFile.remove(file);
             if (errorFile == null) errorFile = new HashSet<>();
             errorFile.add(file + " copy fail:" + e.getMessage());
-          } finally {
-            close(bis);
           }
         }
       }
@@ -243,7 +222,7 @@ public class FilesCatcherImpl implements FilesCatcher {
       e.printStackTrace();
       return null;
     } finally {
-      BufferedInputStream bis2 = null;
+      /*BufferedInputStream bis2 = null;
       String err = this.createFailFile(errorFile);
       {
         File error = null;
@@ -259,9 +238,57 @@ public class FilesCatcherImpl implements FilesCatcher {
             close(bis2);
           }
         }
+      }*/
+      try {
+        createFailFile(errorFile, zipOutputStream);
+      } catch (Exception e) {
+        e.printStackTrace();
       }
 
+
       close(zipOutputStream);
+    }
+  }
+
+  private void zipProjectFile(String file, ZipOutputStream zipOutputStream) throws Exception {
+    BufferedInputStream bis = null;
+    try {
+      String zipFile = file;
+      if (pathsBuild != null && pathsBuild.size() != 0) {
+        for (String path : pathsBuild) {
+          if (zipFile.indexOf(path) == 0) {
+            zipFile = zipFile.replace(path, confBuild.getString(path));
+            break;
+          }
+        }
+      } else if (isWindows) {
+        zipFile = zipFile.substring(zipFile.indexOf(':') + 2);
+      }
+      zipOutputStream.putNextEntry(new ZipEntry(zipFile));
+      bis = new BufferedInputStream(new FileInputStream(new File(file)));
+            /*int b;
+            while ((b = bis.read()) != -1) {
+              zipOutputStream.write(b); // 将字节流写入当前zip目录
+            }*/
+      this.writeZipStream(bis, zipOutputStream);
+      System.out.println("create zip file :" + zipFile);
+    } finally {
+      close(bis);
+    }
+  }
+
+  private void zipDataFile(String dataInfo, ZipOutputStream zipOutputStream) throws Exception {
+    BufferedInputStream bis = null;
+    try {
+      Calendar calendar = Calendar.getInstance();
+      String zipFile = new StringBuilder(tmpFilePath).append(calendar.get(Calendar.YEAR)).append('_').append(calendar.get(Calendar.MONTH) + 1).append('_').append(calendar.get(Calendar.DATE)).append((int) (Math.random() * 10000)).append(".txt").toString();
+
+      zipOutputStream.putNextEntry(new ZipEntry(zipFile));
+      bis = new BufferedInputStream(new FileInputStream(new File(dataInfo)));
+      this.writeZipStream(bis, zipOutputStream);
+      System.out.println("create zip file :" + zipFile);
+    } finally {
+      close(bis);
     }
   }
 
@@ -292,28 +319,16 @@ public class FilesCatcherImpl implements FilesCatcher {
     }
   }
 
-  private String createFailFile(Set<String> fails) {
-    Calendar calendar = Calendar.getInstance();
-    String failOfFile = new StringBuilder(tmpFilePath).append(calendar.get(Calendar.YEAR)).append('_').append(calendar.get(Calendar.MONTH) + 1).append('_').append(calendar.get(Calendar.DATE)).append(".txt").toString();
-    File file = new File(failOfFile);
-    BufferedWriter stream = null;
-    try {
-      if (file.exists()) {
-        file.delete();
-      }
-      file.createNewFile();
-      stream = new BufferedWriter(new FileWriter(file));
-      for (String line : fails) {
-        stream.write(line);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      try {
-        if (stream != null) stream.close();
-      } catch (Exception e) {
-      }
+  private void createFailFile(Set<String> fails, ZipOutputStream zipOutputStream) throws Exception {
+    zipOutputStream.putNextEntry(new ZipEntry("result.txt"));
+    for (String str : fails) {
+      str += "\r\n";
+      zipOutputStream.write(str.getBytes());
     }
-    return failOfFile;
+  }
+
+  private int getTextMode(String text) {
+
+    return 0;
   }
 }
