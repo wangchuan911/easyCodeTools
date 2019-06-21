@@ -1,19 +1,17 @@
-package my.hehe.demo.proxy.impl;
+package my.hehe.demo.services.impl;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import my.hehe.demo.proxy.FilesCatcher;
+import my.hehe.demo.services.FilesCatcher;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.*;
 import java.util.*;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public class FilesCatcherImpl implements FilesCatcher {

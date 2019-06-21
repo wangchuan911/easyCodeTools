@@ -1,4 +1,4 @@
-package my.hehe.demo.proxy;
+package my.hehe.demo.services;
 
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
@@ -9,7 +9,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.ServiceBinder;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
-import my.hehe.demo.proxy.impl.FilesCatcherImpl;
+import my.hehe.demo.services.impl.FilesCatcherImpl;
 
 import java.util.Set;
 
