@@ -3,10 +3,12 @@ package my.hehe.demo.services.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.jdbc.JDBCClient;
 import my.hehe.demo.services.FilesCatcher;
 import org.apache.commons.lang.StringUtils;
 
@@ -27,6 +29,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     return filesCatcher;
   }
 
+  JDBCClient jdbcClient = null;
   JsonObject confBuild = null;
   JsonObject confSourse = null;
   Set<String> pathsBuild = null;
@@ -47,9 +50,18 @@ public class FilesCatcherImpl implements FilesCatcher {
     } else {
       return;
     }
+    {
+      JsonObject dbConfig = new JsonObject();
+      String var1 = config.getJsonObject("data").getString("data3");
+      String[] var2=var1.split("\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*");
+      dbConfig.put("url",var2[0]);
+      dbConfig.put("user",var2[1]);
+      dbConfig.put("password",var2[2]);
+      jdbcClient = JDBCClient.createNonShared(Vertx.vertx(), dbConfig);
+    }
 
+    config = config.getJsonObject("files");
     tmpFilePath = config.getString("tmpFilePath");
-
     JsonObject build = config.getJsonObject("build");
     Set<String> keys = build.getMap().keySet();
     keys.forEach(s -> {
@@ -151,7 +163,7 @@ public class FilesCatcherImpl implements FilesCatcher {
           getFileSub(successFile, errorFile, rootFile, files);
         }
       } else {
-        errorFile.add(fileName + (rootFile.exists() ? " is not exists" : (!rootFile.canRead() ? " is unread" : "")));
+        errorFile.add(fileName + (!rootFile.exists() ? " is not exists" : (!rootFile.canRead() ? " is unread" : "")));
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -210,10 +222,11 @@ public class FilesCatcherImpl implements FilesCatcher {
             }
             zipOutputStream.putNextEntry(new ZipEntry(zipFile));
             bis = new BufferedInputStream(new FileInputStream(new File(file)));
-            int b;
+            /*int b;
             while ((b = bis.read()) != -1) {
               zipOutputStream.write(b); // 将字节流写入当前zip目录
-            }
+            }*/
+            this.writeZipStream(bis, zipOutputStream);
             System.out.println("create zip file :" + zipFile);
           } catch (Exception e) {
             e.printStackTrace();
@@ -221,13 +234,7 @@ public class FilesCatcherImpl implements FilesCatcher {
             if (errorFile == null) errorFile = new HashSet<>();
             errorFile.add(file + " copy fail:" + e.getMessage());
           } finally {
-            try {
-              if (bis != null) {
-                bis.close();
-              }
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
+            close(bis);
           }
         }
       }
@@ -236,13 +243,77 @@ public class FilesCatcherImpl implements FilesCatcher {
       e.printStackTrace();
       return null;
     } finally {
-      try {
-        if (zipOutputStream != null) {
-          zipOutputStream.close();
+      BufferedInputStream bis2 = null;
+      String err = this.createFailFile(errorFile);
+      {
+        File error = null;
+        if (StringUtils.isNotEmpty(err) && (error = new File(err)).exists()) {
+          try {
+            zipOutputStream.putNextEntry(new ZipEntry("result.txt"));
+            bis2 = new BufferedInputStream(new FileInputStream(error));
+            writeZipStream(bis2, zipOutputStream);
+          } catch (Exception e) {
+            e.printStackTrace();
+          } finally {
+            error.delete();
+            close(bis2);
+          }
         }
+      }
+
+      close(zipOutputStream);
+    }
+  }
+
+  private void writeZipStream(InputStream in, OutputStream out) throws IOException {
+    int b;
+    while ((b = in.read()) != -1) {
+      out.write(b); // 将字节流写入当前zip目录
+    }
+  }
+
+  private void close(InputStream in) {
+    try {
+      if (in != null) {
+        in.close();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void close(OutputStream out) {
+    try {
+      if (out != null) {
+        out.close();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private String createFailFile(Set<String> fails) {
+    Calendar calendar = Calendar.getInstance();
+    String failOfFile = new StringBuilder(tmpFilePath).append(calendar.get(Calendar.YEAR)).append('_').append(calendar.get(Calendar.MONTH) + 1).append('_').append(calendar.get(Calendar.DATE)).append(".txt").toString();
+    File file = new File(failOfFile);
+    BufferedWriter stream = null;
+    try {
+      if (file.exists()) {
+        file.delete();
+      }
+      file.createNewFile();
+      stream = new BufferedWriter(new FileWriter(file));
+      for (String line : fails) {
+        stream.write(line);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        if (stream != null) stream.close();
       } catch (Exception e) {
-        e.printStackTrace();
       }
     }
+    return failOfFile;
   }
 }
