@@ -59,13 +59,7 @@ public class ApplicationVerticle extends AbstractVerticle {
         }
       }
       jdbcClients.put("rimdbTest", rimdbTest);
-      JdbcUtils.getJdbcClient("rimdbTest").queryWithParams("select * from rme_eqp a where a.eqp_id=?", new JsonArray().add("000125110000000006328795"), resultSetAsyncResult -> {
-        if (resultSetAsyncResult.succeeded()) {
-          System.out.println(resultSetAsyncResult.result().getRows());
-        } else {
-          resultSetAsyncResult.cause().printStackTrace();
-        }
-      });
+
     } catch (NoSuchFieldException e) {
       e.printStackTrace();
     } catch (IllegalAccessException e) {
