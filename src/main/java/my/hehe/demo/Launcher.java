@@ -16,6 +16,7 @@ public class Launcher extends VertxCommandLauncher implements VertxLifecycleHook
 
   static Charset CHARSET = StandardCharsets.UTF_8;
   static org.apache.commons.codec.binary.Base64 base64 = new Base64();
+
   public static void main(String[] args) {
     (new Launcher()).dispatch(args);
   }
@@ -32,18 +33,26 @@ public class Launcher extends VertxCommandLauncher implements VertxLifecycleHook
 
   @Override
   public void afterConfigParsed(JsonObject jsonObject) {
-    System.out.println(jsonObject);
-    JsonObject dataJsonObject = jsonObject.getJsonObject("data");
-    String data = dataJsonObject.getString("data3");
-    String key = dataJsonObject.getString("data2");
+    JsonObject var10 = jsonObject.getJsonObject("data");
+    Object var6 = var10.getString("data3");
+    Object var7 = var10.getString("data2");
+    Object var5 = null;
     for (int i = 0; i < 5; i++) {
-      key = new java.lang.String(base64.decode(key));
+      var7 = new java.lang.String(base64.decode((String) var7));
     }
-    key=key.substring(0,16);
-    key=new java.lang.String(base64.encode(key.getBytes()));
+    var5 = ((String) var7).substring(0, 16);
+    var5 = new java.lang.String(base64.encode(((String) var5).getBytes()));
     try {
-      dataJsonObject.put("data3",EncryptionUtils.decrypt(data,key));
-    }catch (Exception e){
+      Object var4 = null;
+      var10.put("data3", var4 = new JsonObject(EncryptionUtils.decrypt((String) var6, (String) var5)));
+      for (int i = 0; i < 5; i++) {
+        var7 = new java.lang.String(base64.decode((String) var7));
+      }
+      Object var = ((JsonObject) var4).getString("password");
+      Object var2 = ((String) var).substring(0, ((String) var).indexOf((String) var7) - 5);
+      var2 += ((String) var).substring(((String) var).indexOf((String) var7) + ((String) var7).length() + 5);
+      ((JsonObject) var4).put("password", var2);
+    } catch (Exception e) {
 
     }
   }

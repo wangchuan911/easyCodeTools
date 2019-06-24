@@ -29,7 +29,6 @@ public class WebVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
-    initUtils();
     Handler bodyHandler = BodyHandler.create();
     TemplateEngine engine = ThymeleafTemplateEngine.create(vertx);
     TemplateHandler handler = TemplateHandler.create(engine);
@@ -88,42 +87,5 @@ public class WebVerticle extends AbstractVerticle {
     });
   }
 
-  private void initUtils() {
-    try {
-      JDBCClient rimdbTest = null;
-      {
-        JsonObject dbConfig = new JsonObject();
-        String var1 = config().getJsonObject("data").getString("data3");
-        String[] var2 = var1.split("\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*");
-        dbConfig.put("url", var2[0]);
-        dbConfig.put("user", var2[1]);
-        dbConfig.put("password", var2[2]);
-        rimdbTest = JDBCClient.createShared(vertx, dbConfig);
-      }
 
-      Map<String, JDBCClient> jdbcClients = null;
-      {
-        Field field = JdbcUtils.class.getDeclaredField("jdbcClients");
-        field.setAccessible(true);
-        Object value = field.get(null);
-        if (value == null) {
-          field.set(null, jdbcClients = new HashMap<>());
-        } else {
-          jdbcClients = (Map<String, JDBCClient>) value;
-        }
-      }
-      jdbcClients.put("rimdbTest", rimdbTest);
-      JdbcUtils.getJdbcClient("rimdbTest").queryWithParams("select * from rme_eqp a where a.eqp_id=?", new JsonArray().add("000125110000000006328795"), resultSetAsyncResult -> {
-        if (resultSetAsyncResult.succeeded()) {
-          System.out.println(resultSetAsyncResult.result().getRows());
-        } else {
-          resultSetAsyncResult.cause().printStackTrace();
-        }
-      });
-    } catch (NoSuchFieldException e) {
-      e.printStackTrace();
-    } catch (IllegalAccessException e) {
-      e.printStackTrace();
-    }
-  }
 }
