@@ -9,11 +9,15 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
+import my.hehe.demo.common.JdbcUtils;
 import my.hehe.demo.services.FilesCatcher;
+import my.hehe.demo.services.vo.DataBaseVO;
+import my.hehe.demo.services.vo.ResouceVO;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -102,26 +106,60 @@ public class FilesCatcherImpl implements FilesCatcher {
       if (fileList == null || fileList.size() == 0) {
         future.fail(new NullPointerException());
       }
-      final Set<String> successFile = new ConcurrentHashSet<>();
+      final Set<String> simpleFiles = new ConcurrentHashSet<>();
+      final Set<ResouceVO> unSimpleFiles = new ConcurrentHashSet<>();
       final Set<String> errorFile = new ConcurrentHashSet<>();
       //遍历文本，找文件
       fileList.forEach(fileName -> {
-        this.getTextMode(fileName);
-        getFile(successFile, errorFile, fileName);
+        int type = this.getTextMode(fileName);
+        switch (type) {
+          case 0:
+            getFile(simpleFiles, errorFile, fileName);
+            break;
+          case 1:
+            try {
+              String[] var = fileName.split(":")[1].split("\\.");
+              unSimpleFiles.add(new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase()));
+            } catch (NullPointerException e) {
+              errorFile.add(fileName + " data is invail!");
+            }
+            break;
+        }
+
       });
       //创建zip文件
       File zipOfFile = this.careateZipFile();
       zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
       //把一般文件压缩到zip文件中
-      if (successFile.size() > 0) {
-        this.zipSimpleFile(zipOutputStream, successFile, errorFile);
+      if (simpleFiles.size() > 0) {
+        this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
       }
-      this.createFailFile(errorFile, zipOutputStream);
-      this.close(zipOutputStream);
+      if (unSimpleFiles.size() > 0) {
+        final ZipOutputStream zipOutputStream1 = zipOutputStream;
+        this.zipDataFile(zipOutputStream, unSimpleFiles, errorFile, aVoid -> {
+          //生成失败信息
+          try {
+            this.createFailFile(errorFile, zipOutputStream1);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+          //关闭数据流
+          this.close(zipOutputStream1);
 
-      future.complete(zipOfFile.getAbsolutePath());
+          future.complete(zipOfFile.getAbsolutePath());
+        });
+      } else {
+        //生成失败信息
+        this.createFailFile(errorFile, zipOutputStream);
+
+        //关闭数据流
+        this.close(zipOutputStream);
+
+        future.complete(zipOfFile.getAbsolutePath());
+      }
     } catch (Exception e) {
       e.printStackTrace();
+      //关闭数据流
       this.close(zipOutputStream);
       future.fail(e);
     }
@@ -168,17 +206,17 @@ public class FilesCatcherImpl implements FilesCatcher {
     return fileName;
   }
 
-  private void getFile(Set<String> successFile, Set<String> errorFile, String fileName) {
+  private void getFile(Set<String> simpleFiles, Set<String> errorFile, String fileName) {
     try {
       fileName = fileNameCheck(fileName);
       File rootFile = new File(fileName);
       if (rootFile.exists() && rootFile.canRead()) {
         if (rootFile.isFile()) {
           System.out.println(rootFile.getAbsolutePath());
-          successFile.add(fileName);
+          simpleFiles.add(fileName);
         } else if (rootFile.isDirectory()) {
           String[] files = rootFile.list(filenameFilter);
-          getFileSub(successFile, errorFile, rootFile, files);
+          getFileSub(simpleFiles, errorFile, rootFile, files);
         }
       } else {
         errorFile.add(fileName + (!rootFile.exists() ? " is not exists" : (!rootFile.canRead() ? " is unread" : "")));
@@ -190,7 +228,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     }
   }
 
-  private void getFileSub(Set<String> successFile, Set<String> errorFile, File rootFile, String[] files) {
+  private void getFileSub(Set<String> simpleFiles, Set<String> errorFile, File rootFile, String[] files) {
     for (int i = 0; i < files.length; i++) {
       String subFileName = new StringBuilder(rootFile.getAbsolutePath()).append(File.separator).append(files[i]).toString();
       subFileName = fileNameCheck(subFileName);
@@ -201,25 +239,25 @@ public class FilesCatcherImpl implements FilesCatcher {
       }
       if (subFile.isFile()) {
         System.out.println(rootFile.getAbsolutePath());
-        successFile.add(subFileName);
+        simpleFiles.add(subFileName);
       } else if (subFile.isDirectory()) {
-        getFile(successFile, errorFile, subFileName);
+        getFile(simpleFiles, errorFile, subFileName);
       } else {
         errorFile.add(subFileName);
       }
     }
   }
 
-  private void zipSimpleFile(ZipOutputStream zipOutputStream, Set<String> successFile, Set<String> errorFile) {
+  private void zipSimpleFile(ZipOutputStream zipOutputStream, Set<String> simpleFiles, Set<String> errorFile) {
     try {
-      if (successFile != null || errorFile != null) {
+      if (simpleFiles != null || errorFile != null) {
 
-        for (String file : successFile) {
+        for (String file : simpleFiles) {
           try {
             zipProjectFile(file, zipOutputStream);
           } catch (Exception e) {
             e.printStackTrace();
-            successFile.remove(file);
+            simpleFiles.remove(file);
             if (errorFile == null) errorFile = new HashSet<>();
             errorFile.add(file + " copy fail:" + e.getMessage());
           }
@@ -256,18 +294,37 @@ public class FilesCatcherImpl implements FilesCatcher {
     }
   }
 
-  private void zipDataFile(String dataInfo, ZipOutputStream zipOutputStream) throws Exception {
+  private void zipDataFile(ZipOutputStream zipOutputStream, Set<ResouceVO> dataBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
     BufferedInputStream bis = null;
-    try {
-      Calendar calendar = Calendar.getInstance();
-      String zipFile = new StringBuilder(tmpFilePath).append(calendar.get(Calendar.YEAR)).append('_').append(calendar.get(Calendar.MONTH) + 1).append('_').append(calendar.get(Calendar.DATE)).append((int) (Math.random() * 10000)).append(".txt").toString();
+    AtomicInteger atomicInteger = new AtomicInteger(0);
+    for (ResouceVO resouceVO : dataBaseVOS) {
+      if (resouceVO instanceof DataBaseVO) {
+        DataBaseVO dataBaseVO = (DataBaseVO) resouceVO;
+        atomicInteger.incrementAndGet();
+        try {
+          JdbcUtils.getJdbcClient("rimdbTest").querySingleWithParams("select sf_get_source_from_db(?,?,?) from dual", new JsonArray().add(dataBaseVO.getType()).add(dataBaseVO.getUser()).add(dataBaseVO.getResName()), jsonArrayAsyncResult -> {
+            if (jsonArrayAsyncResult.succeeded()) {
+              JsonArray jsonArray = null;
+              String content = (jsonArray = jsonArrayAsyncResult.result()).getString(0);
+              synchronized (zipOutputStream) {
+                try {
+                  zipOutputStream.putNextEntry(new ZipEntry(dataBaseVO.getUser() + "-" + dataBaseVO.getResName()));
+                  zipOutputStream.write(content.getBytes());
+                } catch (IOException e) {
+                  errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
+                }
+              }
+              if (atomicInteger.decrementAndGet() == 0) {
+                handler.handle(null);
+              }
+            }
+          });
 
-      zipOutputStream.putNextEntry(new ZipEntry(zipFile));
-      bis = new BufferedInputStream(new FileInputStream(new File(dataInfo)));
-      this.writeZipStream(bis, zipOutputStream);
-      System.out.println("create zip file :" + zipFile);
-    } finally {
-      close(bis);
+        } catch (Exception e) {
+          e.printStackTrace();
+          errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
+        }
+      }
     }
   }
 
@@ -308,7 +365,12 @@ public class FilesCatcherImpl implements FilesCatcher {
   }
 
   private int getTextMode(String text) {
-
-    return 0;
+    if (text.toUpperCase().indexOf("DATA:") == 0) {
+      return 1;
+    } else if (text.toUpperCase().indexOf("FTP:") == 0) {
+      return 2;
+    } else {
+      return 0;
+    }
   }
 }
