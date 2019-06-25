@@ -8,15 +8,17 @@ public abstract class ResouceVO {
     return resName;
   }
 
-  public void setResName(String resName) {
+  public ResouceVO setResName(String resName) {
     this.resName = resName;
+    return this;
   }
 
   public String getResContent() {
     return resContent;
   }
 
-  public void setResContent(String resContent) {
+  public ResouceVO setResContent(String resContent) {
     this.resContent = resContent;
+    return this;
   }
 }
