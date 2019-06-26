@@ -63,6 +63,7 @@ public class AsyncFlow {
   public void next() {
     Future current = this._next();
     if (current == null) return;
+    System.out.println(new StringBuilder("start handler [").append(currentFlow).append("]"));
     current.complete(this);
   }
 
