@@ -11,19 +11,22 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AsyncFlow {
-
-  private Deque<Handler<AsyncResult<AsyncFlow>>> handlers = new LinkedList<>();
+  //流程列队
+  private Deque<Handler<AsyncFlow>> handlers = new LinkedList<>();
+  //流程别名
   private Map<Object, String> flowNamesMap = null;
-
+  //异步器执行器
   private Future next = Future.future();
+  //当前环节名
   private String currentFlow = null;
-
+  //catch 执行器
   private Handler catchHandler = o -> {
     if (o instanceof Throwable) {
       ((Throwable) o).printStackTrace();
     } else
       System.out.println(o.toString());
   };
+  //finlly 执行器
   private Handler<AsyncFlow> finalHandler = null;
 
   private AsyncFlow() {
@@ -34,12 +37,12 @@ public class AsyncFlow {
     return new AsyncFlow();
   }
 
-  public synchronized AsyncFlow then(Handler<AsyncResult<AsyncFlow>> handle) {
+  public synchronized AsyncFlow then(Handler<AsyncFlow> handle) {
     handlers.addLast(handle);
     return this;
   }
 
-  public synchronized AsyncFlow then(String name, Handler<AsyncResult<AsyncFlow>> handle) {
+  public synchronized AsyncFlow then(String name, Handler<AsyncFlow> handle) {
     if (this.flowNamesMap == null) {
       this.flowNamesMap = new HashMap<>();
     }
@@ -64,10 +67,6 @@ public class AsyncFlow {
     }
     if (this.catchHandler != null) {
       this.catchHandler.handle(e);
-    } else {
-      Future current = this._next();
-      if (current == null) return;
-      current.fail(e);
     }
     this.end();
   }
@@ -76,10 +75,6 @@ public class AsyncFlow {
     String error = (this.currentFlow != null && this.currentFlow.length() > 0) ? this.errorMsg(var) : var;
     if (this.catchHandler != null) {
       this.catchHandler.handle(error);
-    } else {
-      Future current = this._next();
-      if (current == null) return;
-      current.fail(error);
     }
     this.end();
   }
@@ -90,14 +85,24 @@ public class AsyncFlow {
 
   private Future _next() {
     Handler h = handlers.pollFirst();
-    if (this.flowNamesMap != null) {
-      this.currentFlow = this.flowNamesMap.get(h);
-    }
     if (h == null) {
       this.end();
       return null;
     }
-    Future current = next.setHandler(h);
+    Future current = next.setHandler((Handler<AsyncResult<AsyncFlow>>) async -> {
+      if (async.succeeded()) {
+        try {
+          h.handle(this);
+        } catch (Throwable e) {
+          this.fail(e);
+        }
+      } else {
+        this.fail(async.cause());
+      }
+    });
+    if (this.flowNamesMap != null) {
+      this.currentFlow = this.flowNamesMap.get(h);
+    }
     next = Future.future();
     return current;
   }
@@ -125,43 +130,35 @@ public class AsyncFlow {
     AtomicInteger b = new AtomicInteger(0);
     try {
       AsyncFlow f = AsyncFlow.getInstance()
-        .then("flow" + a.incrementAndGet(), asyncFlowAsyncResult -> {
-          if (asyncFlowAsyncResult.succeeded()) {
-            System.out.println(b.incrementAndGet());
-            asyncFlowAsyncResult.result().next();
-          }
-        }).then("flow" + a.incrementAndGet(), asyncFlowAsyncResult -> {
-          if (asyncFlowAsyncResult.succeeded()) {
-            System.out.println(b.incrementAndGet());
-            asyncFlowAsyncResult.result().next();
-          }
-        }).then("flow" + a.incrementAndGet(), asyncFlowAsyncResult -> {
-          if (asyncFlowAsyncResult.succeeded()) {
-            System.out.println(b.incrementAndGet());
-            asyncFlowAsyncResult.result().fail("err");
-          } else {
-            asyncFlowAsyncResult.cause().printStackTrace();
-          }
-        }).then("flow" + a.incrementAndGet(), asyncFlowAsyncResult -> {
-          if (asyncFlowAsyncResult.succeeded()) {
-            System.out.println(b.incrementAndGet());
-            asyncFlowAsyncResult.result().next();
-          }
-        }).then("flow" + a.incrementAndGet(), asyncFlowAsyncResult -> {
-          if (asyncFlowAsyncResult.succeeded()) {
-            System.out.println(b.incrementAndGet());
-            asyncFlowAsyncResult.result().next();
-          }
-        }).then("flow" + a.incrementAndGet(), asyncFlowAsyncResult -> {
-          if (asyncFlowAsyncResult.succeeded()) {
-            System.out.println(b.incrementAndGet());
-            asyncFlowAsyncResult.result().next();
-          }
-        }).catchThen(o -> {
-          if (o instanceof Throwable) {
-            ((Throwable) o).printStackTrace();
-          } else
-            System.out.println(o.toString());
+        .then("flow" + a.incrementAndGet(), flow -> {
+          System.out.println(b.incrementAndGet());
+          flow.next();
+        }).then("flow" + a.incrementAndGet(), flow -> {
+
+          System.out.println(b.incrementAndGet());
+          flow.next();
+
+        }).then("flow" + a.incrementAndGet(), flow -> {
+          System.out.println(b.incrementAndGet());
+//          String aa=null;
+//          aa.length();
+          flow.next();
+
+        }).then("flow" + a.incrementAndGet(), flow -> {
+
+          System.out.println(b.incrementAndGet());
+          flow.next();
+
+        }).then("flow" + a.incrementAndGet(), flow -> {
+
+          System.out.println(b.incrementAndGet());
+          flow.next();
+
+        }).then("flow" + a.incrementAndGet(), flow -> {
+
+          System.out.println(b.incrementAndGet());
+          flow.next();
+
         }).finalThen(asyncFlow -> {
           System.out.println("end!");
         });
