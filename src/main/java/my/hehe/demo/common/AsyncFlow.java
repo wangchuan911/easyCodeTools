@@ -3,11 +3,14 @@ package my.hehe.demo.common;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AsyncFlow {
@@ -28,6 +31,8 @@ public class AsyncFlow {
   };
   //finlly 执行器
   private Handler<AsyncFlow> finalHandler = null;
+  //数据总线
+  private Map busMap = null;
 
   private AsyncFlow() {
 
@@ -113,6 +118,10 @@ public class AsyncFlow {
       this.finalHandler.handle(this);
       this.finalHandler = null;
     }
+    if (this.busMap != null) {
+      this.busMap.clear();
+      this.busMap = null;
+    }
   }
 
   public AsyncFlow catchThen(Handler throwableHandler) {
@@ -123,6 +132,11 @@ public class AsyncFlow {
   public AsyncFlow finalThen(Handler<AsyncFlow> finalHandler) {
     this.finalHandler = finalHandler;
     return this;
+  }
+
+  public synchronized Map getParam() {
+    if (this.busMap == null) this.busMap = new ConcurrentHashMap();
+    return this.busMap;
   }
 
   public static void main(String[] args) {

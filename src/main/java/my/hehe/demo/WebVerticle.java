@@ -77,10 +77,11 @@ public class WebVerticle extends AbstractVerticle {
         }
       });
     });
-    vertx.createHttpServer().requestHandler(router).listen(8088, http -> {
+    int port = config().getJsonObject("server").getJsonObject("port").getInteger("web");
+    vertx.createHttpServer().requestHandler(router).listen(port, http -> {
       if (http.succeeded()) {
         startFuture.complete();
-        System.out.println("HTTP server started http://localhost:8088/index.html");
+        System.out.println("HTTP server started http://localhost:" + port + "/index.html");
       } else {
         startFuture.fail(http.cause());
       }

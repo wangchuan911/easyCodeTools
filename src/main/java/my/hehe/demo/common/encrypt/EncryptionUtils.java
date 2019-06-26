@@ -109,7 +109,24 @@ public class EncryptionUtils {
   }
 
   public static void main(String[] args) throws Exception {
+    java.lang.String string = "Vm0wd2VHUXhUWGRPVldoVFltdHdUMVp0TVZOWFJsbDNXa1JTVjFadGVGWlZNakExVmpKS1IySkVUbGhoTVVwVVZtMTRZV015VGtWU2JIQk9VbXh3ZVZkV1kzaFRNVWw0V2toR1VtSklRazlWYWtwdlZWWmtWMXBFVWxwV01VcEpWbTEwVjFWdFNrZFhiR2hYWVd0d2RscFdXbUZqTVdSMFVteGtUbFp1UWxoV1JscFhWakpHU0ZadVJsSldSM001";
+    for (int i = 0; i < 5; i++) {
+      string = new java.lang.String(base64.decode(string));
+    }
+    System.out.println(string=string.substring(0,16));
+    String password=new java.lang.String(base64.encode(string.getBytes()));
+    String content = "{\"user\":\"rimdb\",\"url\":\"jdbc:oracle:thin:@134.192.232.230:1522/rim\",\"password\":\"rimdb123@!#$%ztesoft_cnm@!#$%#\",\"driver_class\":\"oracle.jdbc.driver.OracleDriver\"}";
+    // = "VmpKNGFrMVdWWGxUYTJoVlYwZDRVVlp1=";
+    System.out.println(password);
+    System.out.println("加密之前：" + content);
 
+    // 加密
+    String encrypt = EncryptionUtils.encrypt(content, password);
+    System.out.println("加密后的内容：" +encrypt);
+
+    // 解密
+    String decrypt = EncryptionUtils.decrypt(encrypt, password);
+    System.out.println("解密后的内容：" + decrypt);
 
   }
 }

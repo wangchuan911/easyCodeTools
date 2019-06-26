@@ -9,6 +9,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
+import my.hehe.demo.common.AsyncFlow;
 import my.hehe.demo.common.JdbcUtils;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.vo.DataBaseVO;
@@ -100,8 +101,8 @@ public class FilesCatcherImpl implements FilesCatcher {
   @Override
   public void dual(Set<String> fileList, Handler<AsyncResult<String>> outputBodyHandler) {
     Future future = Future.future();
-    ZipOutputStream zipOutputStream = null;
-    try {
+    /*ZipOutputStream zipOutputStream = null;
+      try {
       future.setHandler(outputBodyHandler);
       if (fileList == null || fileList.size() == 0) {
         future.fail(new NullPointerException());
@@ -110,7 +111,7 @@ public class FilesCatcherImpl implements FilesCatcher {
       final Set<ResouceVO> unSimpleFiles = new ConcurrentHashSet<>();
       final Set<String> errorFile = new ConcurrentHashSet<>();
       //遍历文本，找文件
-      fileList.forEach(fileName -> {
+    fileList.forEach(fileName -> {
         int type = this.getTextMode(fileName);
         switch (type) {
           case 0:
@@ -162,7 +163,87 @@ public class FilesCatcherImpl implements FilesCatcher {
       //关闭数据流
       this.close(zipOutputStream);
       future.fail(e);
+    }*/
+
+    future.setHandler(outputBodyHandler);
+    if (fileList == null || fileList.size() == 0) {
+      future.fail(new NullPointerException());
     }
+    final Set<String> simpleFiles = new ConcurrentHashSet<>();
+    final Set<ResouceVO> unSimpleFiles = new ConcurrentHashSet<>();
+    final Set<String> errorFile = new ConcurrentHashSet<>();
+    AsyncFlow.getInstance()
+      .then("遍历文本，找文件", flow -> {
+        try {
+          fileList.forEach(fileName -> {
+            int type = this.getTextMode(fileName);
+            switch (type) {
+              case 0:
+                getFile(simpleFiles, errorFile, fileName);
+                break;
+              case 1:
+                try {
+                  String[] var = fileName.split(":")[1].split("\\.");
+                  unSimpleFiles.add(new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase()));
+                } catch (NullPointerException e) {
+                  errorFile.add(fileName + " data is invail!");
+                }
+                break;
+            }
+          });
+        } catch (Exception e) {
+          flow.fail(e);
+        }
+        flow.next();
+      }).then("创建zip文件", flow -> {
+
+      try {
+        File zipOfFile = this.careateZipFile();
+        ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
+        flow.getParam().put("zipOfFile", zipOfFile);
+        flow.getParam().put("zipOutputStream", zipOutputStream);
+      } catch (Exception e) {
+        flow.fail(e);
+      }
+      flow.next();
+    }).then("把一般文件压缩到zip文件中", flow -> {
+      try {
+        if (simpleFiles.size() > 0) {
+          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get("zipOutputStream");
+          this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
+        }
+      } catch (Exception e) {
+        flow.fail(e);
+      }
+      flow.next();
+    }).then("把特殊文件压缩到zip文件中", flow -> {
+
+      try {
+        if (unSimpleFiles.size() > 0) {
+          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get("zipOutputStream");
+          this.zipDataFile(zipOutputStream, unSimpleFiles, errorFile, aVoid -> {
+            flow.next();
+          });
+        } else {
+          flow.next();
+        }
+      } catch (Exception e) {
+        flow.fail(e);
+      }
+    }).finalThen(flow -> {
+      ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get("zipOutputStream");
+      File zipOfFile = (File) flow.getParam().get("zipOfFile");
+      //生成失败信息
+      try {
+
+        this.createFailFile(errorFile, zipOutputStream);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      //关闭数据流
+      this.close(zipOutputStream);
+      future.complete(zipOfFile.getAbsolutePath());
+    }).start();
   }
 
   private File careateZipFile() {
