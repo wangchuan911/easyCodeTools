@@ -21,7 +21,7 @@ public class AsyncFlow {
   //流程别名
   private Map<Object, String> flowNamesMap = null;
   //异步器执行器
-  private Future next = Future.future();
+  private Future next = null;
   //当前环节名
   private String currentFlow = null;
   //catch 执行器
@@ -38,6 +38,10 @@ public class AsyncFlow {
   //数据总线
   private Map busMap = null;
 
+  private boolean isStarting = false;
+  private boolean isCompelte = false;
+
+
   private AsyncFlow() {
 
   }
@@ -47,11 +51,13 @@ public class AsyncFlow {
   }
 
   public synchronized AsyncFlow then(Handler<AsyncFlow> handle) {
+    this.doNotEveryThing();
     handlers.addLast(handle);
     return this;
   }
 
   public synchronized AsyncFlow then(String name, Handler<AsyncFlow> handle) {
+    this.doNotEveryThing();
     if (this.flowNamesMap == null) {
       this.flowNamesMap = new HashMap<>();
     }
@@ -60,7 +66,21 @@ public class AsyncFlow {
     return this;
   }
 
+  //放在方法中防止重复调用
+  private void doNotEveryThing() {
+    if (isCompelte) {
+      throw new RuntimeException("flow is compelete!");
+    } else if (isStarting) {
+      throw new RuntimeException("flow is Starting!");
+    }
+  }
+
   public void start() {
+    synchronized (this) {
+      this.doNotEveryThing();
+      next = Future.future();
+      isStarting = true;
+    }
     this.next();
   }
 
@@ -148,6 +168,7 @@ public class AsyncFlow {
       this.busMap.clear();
       this.busMap = null;
     }
+    isCompelte = true;
   }
 
   public AsyncFlow catchThen(Handler throwableHandler) {
@@ -181,8 +202,8 @@ public class AsyncFlow {
 
         }).then("flow" + a.incrementAndGet(), flow -> {
           System.out.println(b.incrementAndGet());
-          String aa = null;
-          aa.length();
+//          String aa = null;
+//          aa.length();
           flow.nextBlocking();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
@@ -203,6 +224,7 @@ public class AsyncFlow {
         }).finalThen(asyncFlow -> {
           System.out.println("end!");
         });
+      f.start();
       f.start();
     } catch (
       Exception e) {

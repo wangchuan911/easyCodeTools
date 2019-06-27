@@ -55,7 +55,20 @@ public class ApplicationVerticle extends AbstractVerticle {
     for (Method method : methods) {
       method.setAccessible(true);
       try {
-        method.invoke(null, new Object[]{vertx, config()});
+        Class<?>[] types = method.getParameterTypes();
+        Object[] args = new Object[types.length];
+        for (int i = 0; i < types.length; i++) {
+          Class<?> type = types[i];
+          if (type == Vertx.class) {
+            args[i] = vertx;
+          } else if (type == JsonObject.class) {
+            args[i] = config();
+          } else {
+            args[i] = null;
+          }
+        }
+        method.invoke(null, args);
+
       } catch (Throwable e) {
         e.printStackTrace();
       }
