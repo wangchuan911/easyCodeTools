@@ -1,12 +1,8 @@
 package my.hehe.demo.common;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 
 import java.util.Deque;
 import java.util.HashMap;
@@ -20,8 +16,6 @@ public class AsyncFlow {
   private Deque<Handler<AsyncFlow>> handlers = new LinkedList<>();
   //流程别名
   private Map<Object, String> flowNamesMap = null;
-  //异步器执行器
-  private Future next = null;
   //当前环节名
   private String currentFlow = null;
   //catch 执行器
@@ -39,7 +33,7 @@ public class AsyncFlow {
   private Map busMap = null;
 
   private boolean isStarting = false;
-  private boolean isCompelte = false;
+  private boolean isComplete = false;
 
 
   private AsyncFlow() {
@@ -51,13 +45,15 @@ public class AsyncFlow {
   }
 
   public synchronized AsyncFlow then(Handler<AsyncFlow> handle) {
-    this.doNotEveryThing();
+    this.undoAtStart();
+    this.undoAtCompelete();
     handlers.addLast(handle);
     return this;
   }
 
   public synchronized AsyncFlow then(String name, Handler<AsyncFlow> handle) {
-    this.doNotEveryThing();
+    this.undoAtStart();
+    this.undoAtCompelete();
     if (this.flowNamesMap == null) {
       this.flowNamesMap = new HashMap<>();
     }
@@ -67,60 +63,44 @@ public class AsyncFlow {
   }
 
   //放在方法中防止重复调用
-  private void doNotEveryThing() {
-    if (isCompelte) {
+  private void undoAtCompelete() {
+    if (isComplete) {
       throw new RuntimeException("flow is compelete!");
-    } else if (isStarting) {
+    }
+  }
+
+  private void undoAtStart() {
+    if (isStarting) {
       throw new RuntimeException("flow is Starting!");
     }
   }
 
   public void start() {
     synchronized (this) {
-      this.doNotEveryThing();
-      next = Future.future();
+      this.undoAtStart();
+      this.undoAtCompelete();
       isStarting = true;
     }
     this.next();
   }
 
   public void next() {
-    Handler h = handlers.pollFirst();
-    if (h == null) {
-      this.end();
-      return;
-    }
-    Future current = next.setHandler((Handler<AsyncResult<AsyncFlow>>) async -> {
-      if (async.succeeded()) {
-        try {
-          h.handle(this);
-        } catch (Throwable e) {
-          this.fail(e);
-        }
-      } else {
-        this.fail(async.cause());
-      }
-    });
-    if (this.flowNamesMap != null) {
-      this.currentFlow = this.flowNamesMap.get(h);
-    }
-    next = Future.future();
-    System.out.println(new StringBuilder("start handler [").append(currentFlow).append("]"));
-    current.complete(this);
-  }
-
-  public void nextBlocking() {
+    this.undoAtCompelete();
     Handler h = handlers.pollFirst();
     if (h == null) {
       this.end();
       return;
     }
     vertx.executeBlocking(future -> {
-      if (this.flowNamesMap != null) {
-        this.currentFlow = this.flowNamesMap.get(h);
+      try {
+        if (this.flowNamesMap != null) {
+          this.currentFlow = this.flowNamesMap.get(h);
+        }
+        System.out.println(new StringBuilder("start handler [").append(currentFlow).append("] --> ").append(Thread.currentThread()));
+        future.complete();
+      } catch (Throwable e) {
+        future.fail(e);
       }
-      System.out.println(new StringBuilder("start handler [").append(currentFlow).append("] --> ").append(Thread.currentThread()));
-      future.complete();
     }, async -> {
       if (async.succeeded()) {
         try {
@@ -168,7 +148,7 @@ public class AsyncFlow {
       this.busMap.clear();
       this.busMap = null;
     }
-    isCompelte = true;
+    isComplete = true;
   }
 
   public AsyncFlow catchThen(Handler throwableHandler) {
@@ -194,32 +174,32 @@ public class AsyncFlow {
       AsyncFlow f = AsyncFlow.getInstance()
         .then("flow" + a.incrementAndGet(), flow -> {
           System.out.println(b.incrementAndGet());
-          flow.nextBlocking();
+          flow.next();
         }).then("flow" + a.incrementAndGet(), flow -> {
 
           System.out.println(b.incrementAndGet());
-          flow.nextBlocking();
+          flow.next();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
           System.out.println(b.incrementAndGet());
 //          String aa = null;
 //          aa.length();
-          flow.nextBlocking();
+          flow.next();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
 
           System.out.println(b.incrementAndGet());
-          flow.nextBlocking();
+          flow.next();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
 
           System.out.println(b.incrementAndGet());
-          flow.nextBlocking();
+          flow.next();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
 
           System.out.println(b.incrementAndGet());
-          flow.nextBlocking();
+          flow.next();
 
         }).finalThen(asyncFlow -> {
           System.out.println("end!");
