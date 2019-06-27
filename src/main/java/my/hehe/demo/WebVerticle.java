@@ -4,6 +4,7 @@ import io.netty.util.internal.StringUtil;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
@@ -42,7 +43,14 @@ public class WebVerticle extends AbstractVerticle {
         MultiMap params = httpServerRequest.formAttributes();
         String string = params.get("text");
         if (StringUtil.isNullOrEmpty(string)) {
-          routingContext.response().end("fail!");
+          engine.render(new JsonObject().put("msg", "fail!"), "templates/result.html", res -> {
+            if (res.succeeded()) {
+              routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
+            } else {
+              res.cause().printStackTrace();
+              routingContext.fail(res.cause());
+            }
+          });
           return;
         }
         try {
@@ -73,7 +81,15 @@ public class WebVerticle extends AbstractVerticle {
           });
         } else {
           stringAsyncResult.cause().printStackTrace();
-          routingContext.response().end("success!");
+//          routingContext.response().end("success!");
+          engine.render(new JsonObject().put("msg", stringAsyncResult.cause().getMessage()), "templates/result.html", res -> {
+            if (res.succeeded()) {
+              routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
+            } else {
+              res.cause().printStackTrace();
+              routingContext.fail(res.cause());
+            }
+          });
         }
       });
     });
