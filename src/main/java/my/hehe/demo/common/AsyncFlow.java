@@ -3,8 +3,10 @@ package my.hehe.demo.common;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.jdbc.JDBCClient;
 
 import java.util.Deque;
 import java.util.HashMap;
@@ -23,6 +25,8 @@ public class AsyncFlow {
   //当前环节名
   private String currentFlow = null;
   //catch 执行器
+  static private Vertx vertx = null;
+
   private Handler catchHandler = o -> {
     if (o instanceof Throwable) {
       ((Throwable) o).printStackTrace();
@@ -61,10 +65,54 @@ public class AsyncFlow {
   }
 
   public void next() {
-    Future current = this._next();
-    if (current == null) return;
+    Handler h = handlers.pollFirst();
+    if (h == null) {
+      this.end();
+      return;
+    }
+    Future current = next.setHandler((Handler<AsyncResult<AsyncFlow>>) async -> {
+      if (async.succeeded()) {
+        try {
+          h.handle(this);
+        } catch (Throwable e) {
+          this.fail(e);
+        }
+      } else {
+        this.fail(async.cause());
+      }
+    });
+    if (this.flowNamesMap != null) {
+      this.currentFlow = this.flowNamesMap.get(h);
+    }
+    next = Future.future();
     System.out.println(new StringBuilder("start handler [").append(currentFlow).append("]"));
     current.complete(this);
+  }
+
+  public void nextBlocking() {
+    Handler h = handlers.pollFirst();
+    if (h == null) {
+      this.end();
+      return;
+    }
+    vertx.executeBlocking(future -> {
+      if (this.flowNamesMap != null) {
+        this.currentFlow = this.flowNamesMap.get(h);
+      }
+      System.out.println(new StringBuilder("start handler [").append(currentFlow).append("] --> ").append(Thread.currentThread()));
+      future.complete();
+    }, async -> {
+      if (async.succeeded()) {
+        try {
+          h.handle(this);
+        } catch (Throwable e) {
+          this.fail(e);
+        }
+      } else {
+        this.fail(async.cause());
+      }
+    });
+
   }
 
   public void fail(Throwable e) {
@@ -89,29 +137,6 @@ public class AsyncFlow {
     return new StringBuilder("Handler[ ").append(currentFlow).append(" ] -> CAUSE[ ").append(var).append(" ]").toString();
   }
 
-  private Future _next() {
-    Handler h = handlers.pollFirst();
-    if (h == null) {
-      this.end();
-      return null;
-    }
-    Future current = next.setHandler((Handler<AsyncResult<AsyncFlow>>) async -> {
-      if (async.succeeded()) {
-        try {
-          h.handle(this);
-        } catch (Throwable e) {
-          this.fail(e);
-        }
-      } else {
-        this.fail(async.cause());
-      }
-    });
-    if (this.flowNamesMap != null) {
-      this.currentFlow = this.flowNamesMap.get(h);
-    }
-    next = Future.future();
-    return current;
-  }
 
   public void end() {
     handlers.clear();
@@ -143,36 +168,37 @@ public class AsyncFlow {
   public static void main(String[] args) {
     AtomicInteger a = new AtomicInteger(0);
     AtomicInteger b = new AtomicInteger(0);
+    AsyncFlow.initUtil(Vertx.vertx(), null);
     try {
       AsyncFlow f = AsyncFlow.getInstance()
         .then("flow" + a.incrementAndGet(), flow -> {
           System.out.println(b.incrementAndGet());
-          flow.next();
+          flow.nextBlocking();
         }).then("flow" + a.incrementAndGet(), flow -> {
 
           System.out.println(b.incrementAndGet());
-          flow.next();
+          flow.nextBlocking();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
           System.out.println(b.incrementAndGet());
-//          String aa=null;
-//          aa.length();
-          flow.next();
-
-        }).then("flow" + a.incrementAndGet(), flow -> {
-
-          System.out.println(b.incrementAndGet());
-          flow.next();
+          String aa = null;
+          aa.length();
+          flow.nextBlocking();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
 
           System.out.println(b.incrementAndGet());
-          flow.next();
+          flow.nextBlocking();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
 
           System.out.println(b.incrementAndGet());
-          flow.next();
+          flow.nextBlocking();
+
+        }).then("flow" + a.incrementAndGet(), flow -> {
+
+          System.out.println(b.incrementAndGet());
+          flow.nextBlocking();
 
         }).finalThen(asyncFlow -> {
           System.out.println("end!");
@@ -180,6 +206,15 @@ public class AsyncFlow {
       f.start();
     } catch (
       Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  @UtilsInital
+  static void initUtil(Vertx vertx, JsonObject jsonObject) {
+    try {
+      AsyncFlow.vertx = vertx;
+    } catch (Throwable e) {
       e.printStackTrace();
     }
   }

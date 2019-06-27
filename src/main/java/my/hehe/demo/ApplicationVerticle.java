@@ -6,13 +6,20 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import my.hehe.demo.common.JdbcUtils;
+import my.hehe.demo.common.UtilsInital;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.reflections.Reflections;
+import org.reflections.scanners.MethodAnnotationsScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class ApplicationVerticle extends AbstractVerticle {
@@ -40,38 +47,18 @@ public class ApplicationVerticle extends AbstractVerticle {
   }
 
   private void toolInit() {
-    try {
-      JDBCClient rimdbTest = null;
-      {
-        JsonObject dbConfig =  config().getJsonObject("data").getJsonObject("data3");
-        rimdbTest = JDBCClient.createShared(vertx, dbConfig);
+    ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
+    configurationBuilder.setUrls(ClasspathHelper.forPackage(ApplicationVerticle.class.getPackage().getName()));
+    configurationBuilder.addScanners(new MethodAnnotationsScanner());
+    Reflections reflections = new Reflections(configurationBuilder);
+    Set<Method> methods = reflections.getMethodsAnnotatedWith(UtilsInital.class);
+    for (Method method : methods) {
+      method.setAccessible(true);
+      try {
+        method.invoke(null, new Object[]{vertx, config()});
+      } catch (Throwable e) {
+        e.printStackTrace();
       }
-
-      Map<String, JDBCClient> jdbcClients = null;
-      {
-        Field field = JdbcUtils.class.getDeclaredField("jdbcClients");
-        field.setAccessible(true);
-        Object value = field.get(null);
-        if (value == null) {
-          field.set(null, jdbcClients = new HashMap<>());
-        } else {
-          jdbcClients = (Map<String, JDBCClient>) value;
-        }
-      }
-      jdbcClients.put("rimdbTest", rimdbTest);
-
-    } catch (NoSuchFieldException e) {
-      e.printStackTrace();
-    } catch (IllegalAccessException e) {
-      e.printStackTrace();
-    }
-  }
-
-  private String getStringValue(String val) {
-    if (StringUtils.isNotEmpty(val) && !val.toUpperCase().equals("NULL")) {
-      return val;
-    } else {
-      return null;
     }
   }
 }
