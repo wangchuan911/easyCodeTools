@@ -54,7 +54,7 @@ public class DataBaseVO extends ResouceVO {
   public static ResouceVO createRes(String text) {
     if (text.toUpperCase().indexOf("DATA:") < 0) return null;
     String[] var = text.split(":")[1].split("\\.");
-    return  new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase());
+    return new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase());
   }
 
   @ResZip
@@ -70,13 +70,10 @@ public class DataBaseVO extends ResouceVO {
             if (jsonArrayAsyncResult.succeeded()) {
               JsonArray jsonArray = null;
               String content = (jsonArray = jsonArrayAsyncResult.result()).getString(0);
-              synchronized (zipOutputStream) {
-                try {
-                  zipOutputStream.putNextEntry(new ZipEntry(dataBaseVO.getUser() + "-" + dataBaseVO.getResName()));
-                  zipOutputStream.write(content.getBytes());
-                } catch (IOException e) {
-                  errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
-                }
+              try {
+                ResouceVO.writeZip(zipOutputStream, content, dataBaseVO.getUser() + "-" + dataBaseVO.getResName());
+              } catch (IOException e) {
+                errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
               }
               if (atomicInteger.decrementAndGet() == 0) {
                 handler.handle(null);
