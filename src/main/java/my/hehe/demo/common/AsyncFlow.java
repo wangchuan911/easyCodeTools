@@ -1,5 +1,6 @@
 package my.hehe.demo.common;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -33,6 +34,9 @@ public class AsyncFlow {
   //数据总线
   private Map busMap = null;
 
+  //当前 future
+  private Future currentFuture = null;
+
   private boolean isStarting = false;
   private boolean isComplete = false;
 
@@ -48,7 +52,7 @@ public class AsyncFlow {
   public synchronized AsyncFlow then(Handler<AsyncFlow> handle) {
     this.undoAtStart();
     this.undoAtCompelete();
-    handlers.addLast(handle);
+    this.handlers.addLast(handle);
     return this;
   }
 
@@ -80,36 +84,33 @@ public class AsyncFlow {
     synchronized (this) {
       this.undoAtStart();
       this.undoAtCompelete();
-      isStarting = true;
+      this.isStarting = true;
     }
     this.next();
   }
 
   public void next() {
     this.undoAtCompelete();
+    if (this.currentFuture != null)
+      this.currentFuture.complete();
     Handler h = handlers.pollFirst();
     if (h == null) {
       this.end();
       return;
     }
     vertx.executeBlocking(future -> {
+      currentFuture = future;
       try {
         if (this.flowNamesMap != null) {
           this.currentFlow = this.flowNamesMap.get(h);
         }
         System.out.println(new StringBuilder("start handler [").append(currentFlow).append("] --> ").append(Thread.currentThread()));
-        future.complete();
+        h.handle(this);
       } catch (Throwable e) {
         future.fail(e);
       }
     }, async -> {
-      if (async.succeeded()) {
-        try {
-          h.handle(this);
-        } catch (Throwable e) {
-          this.fail(e);
-        }
-      } else {
+      if (!async.succeeded()) {
         this.fail(async.cause());
       }
     });
@@ -118,7 +119,8 @@ public class AsyncFlow {
 
   public void fail(Throwable e) {
     if (this.currentFlow != null && this.currentFlow.length() > 0) {
-      e = new Throwable(this.errorMsg(e.getMessage()), e);
+      String err = this.errorMsg((e.getMessage() == null ? e.toString() : e.getMessage()));
+      e = new Throwable(err, e);
     }
     if (this.catchHandler != null) {
       this.catchHandler.handle(e);
@@ -135,7 +137,7 @@ public class AsyncFlow {
   }
 
   private String errorMsg(String var) {
-    return new StringBuilder("Handler[ ").append(currentFlow).append(" ] -> CAUSE[ ").append(var).append(" ]").toString();
+    return new StringBuilder("Handler[ ").append(currentFlow).append(" ] -> Excetion[ ").append(var).append(" ]").toString();
   }
 
 
@@ -149,7 +151,8 @@ public class AsyncFlow {
       this.busMap.clear();
       this.busMap = null;
     }
-    isComplete = true;
+    this.isComplete = true;
+    this.currentFuture = null;
   }
 
   public AsyncFlow catchThen(Handler throwableHandler) {
@@ -183,8 +186,8 @@ public class AsyncFlow {
 
         }).then("flow" + a.incrementAndGet(), flow -> {
           System.out.println(b.incrementAndGet());
-//          String aa = null;
-//          aa.length();
+          String aa = null;
+          aa.length();
           flow.next();
 
         }).then("flow" + a.incrementAndGet(), flow -> {
@@ -205,7 +208,6 @@ public class AsyncFlow {
         }).finalThen(asyncFlow -> {
           System.out.println("end!");
         });
-      f.start();
       f.start();
     } catch (
       Exception e) {
