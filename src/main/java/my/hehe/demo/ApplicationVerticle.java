@@ -1,24 +1,12 @@
 package my.hehe.demo;
 
 import io.vertx.core.*;
-import io.vertx.core.file.FileSystemOptions;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
-import my.hehe.demo.common.JdbcUtils;
-import my.hehe.demo.common.UtilsInital;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.lang.StringUtils;
+import my.hehe.demo.common.annotation.ReflectionUtils;
+import my.hehe.demo.common.annotation.UtilsInital;
 import org.reflections.Reflections;
-import org.reflections.scanners.MethodAnnotationsScanner;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -47,10 +35,7 @@ public class ApplicationVerticle extends AbstractVerticle {
   }
 
   private void toolInit() {
-    ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
-    configurationBuilder.setUrls(ClasspathHelper.forPackage(ApplicationVerticle.class.getPackage().getName()));
-    configurationBuilder.addScanners(new MethodAnnotationsScanner());
-    Reflections reflections = new Reflections(configurationBuilder);
+    Reflections reflections = ReflectionUtils.getReflection();
     Set<Method> methods = reflections.getMethodsAnnotatedWith(UtilsInital.class);
     for (Method method : methods) {
       method.setAccessible(true);

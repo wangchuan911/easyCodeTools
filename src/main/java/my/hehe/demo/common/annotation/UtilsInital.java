@@ -1,4 +1,4 @@
-package my.hehe.demo.common;
+package my.hehe.demo.common.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

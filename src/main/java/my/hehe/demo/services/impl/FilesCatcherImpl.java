@@ -3,22 +3,21 @@ package my.hehe.demo.services.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
-import my.hehe.demo.common.AsyncFlow;
-import my.hehe.demo.common.JdbcUtils;
+import my.hehe.demo.common.*;
+import my.hehe.demo.common.annotation.ReflectionUtils;
+import my.hehe.demo.common.annotation.ResTypeCheck;
+import my.hehe.demo.common.annotation.ResZip;
 import my.hehe.demo.services.FilesCatcher;
-import my.hehe.demo.services.vo.DataBaseVO;
 import my.hehe.demo.services.vo.ResouceVO;
 import org.apache.commons.lang.StringUtils;
+import org.reflections.Reflections;
 
 import java.io.*;
+import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -40,6 +39,8 @@ public class FilesCatcherImpl implements FilesCatcher {
   Set<String> pathsSourse = null;
   Map sourceToBuild = null;
   String tmpFilePath = null;
+  Set<Method> typeCheckMethod = null;
+  Set<Method> typeZipMethod = null;
 
   private FilesCatcherImpl() {
 
@@ -82,6 +83,9 @@ public class FilesCatcherImpl implements FilesCatcher {
 
     sourceToBuild = config.getJsonObject("sourceToBuild").getMap();
 
+    Reflections reflections = ReflectionUtils.getReflection();
+    typeCheckMethod = reflections.getMethodsAnnotatedWith(ResTypeCheck.class);
+    typeZipMethod = reflections.getMethodsAnnotatedWith(ResZip.class);
   }
 
   final static boolean isWindows = System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0;
@@ -176,19 +180,22 @@ public class FilesCatcherImpl implements FilesCatcher {
       .then("遍历文本，找文件", flow -> {
         try {
           fileList.forEach(fileName -> {
-            int type = this.getTextMode(fileName);
-            switch (type) {
-              case 0:
-                getFile(simpleFiles, errorFile, fileName);
-                break;
-              case 1:
-                try {
-                  String[] var = fileName.split(":")[1].split("\\.");
-                  unSimpleFiles.add(new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase()));
-                } catch (NullPointerException e) {
-                  errorFile.add(fileName + " data is invail!");
+            if (typeCheckMethod == null) return;
+            ResouceVO resouceVO = null;
+            for (Method method : typeCheckMethod) {
+              try {
+                resouceVO = (ResouceVO) method.invoke(null, fileName);
+                if (resouceVO != null) {
+                  unSimpleFiles.add(resouceVO);
+                  break;
                 }
-                break;
+              } catch (Throwable e) {
+                e.printStackTrace();
+                errorFile.add(fileName + " " + e.getMessage());
+              }
+            }
+            if (resouceVO == null) {
+              getFile(simpleFiles, errorFile, fileName);
             }
           });
         } catch (Exception e) {
@@ -219,11 +226,14 @@ public class FilesCatcherImpl implements FilesCatcher {
     }).then("把特殊文件压缩到zip文件中", flow -> {
 
       try {
-        if (unSimpleFiles.size() > 0) {
+        if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
           ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get("zipOutputStream");
-          this.zipDataFile(zipOutputStream, unSimpleFiles, errorFile, aVoid -> {
-            flow.next();
-          });
+
+          for (Method method : typeZipMethod) {
+            method.invoke(null,zipOutputStream,unSimpleFiles,errorFile,(Handler<Void>)aVoid -> {
+              flow.next();
+            });
+          }
         } else {
           flow.next();
         }
@@ -375,39 +385,6 @@ public class FilesCatcherImpl implements FilesCatcher {
     }
   }
 
-  private void zipDataFile(ZipOutputStream zipOutputStream, Set<ResouceVO> dataBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
-    BufferedInputStream bis = null;
-    AtomicInteger atomicInteger = new AtomicInteger(0);
-    for (ResouceVO resouceVO : dataBaseVOS) {
-      if (resouceVO instanceof DataBaseVO) {
-        DataBaseVO dataBaseVO = (DataBaseVO) resouceVO;
-        atomicInteger.incrementAndGet();
-        try {
-          JdbcUtils.getJdbcClient("rimdbTest").querySingleWithParams("select sf_get_source_from_db(?,?,?) from dual", new JsonArray().add(dataBaseVO.getType()).add(dataBaseVO.getUser()).add(dataBaseVO.getResName()), jsonArrayAsyncResult -> {
-            if (jsonArrayAsyncResult.succeeded()) {
-              JsonArray jsonArray = null;
-              String content = (jsonArray = jsonArrayAsyncResult.result()).getString(0);
-              synchronized (zipOutputStream) {
-                try {
-                  zipOutputStream.putNextEntry(new ZipEntry(dataBaseVO.getUser() + "-" + dataBaseVO.getResName()));
-                  zipOutputStream.write(content.getBytes());
-                } catch (IOException e) {
-                  errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
-                }
-              }
-              if (atomicInteger.decrementAndGet() == 0) {
-                handler.handle(null);
-              }
-            }
-          });
-
-        } catch (Exception e) {
-          e.printStackTrace();
-          errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
-        }
-      }
-    }
-  }
 
   private void writeZipStream(InputStream in, OutputStream out) throws IOException {
     int b;
@@ -445,13 +422,5 @@ public class FilesCatcherImpl implements FilesCatcher {
     }
   }
 
-  private int getTextMode(String text) {
-    if (text.toUpperCase().indexOf("DATA:") == 0) {
-      return 1;
-    } else if (text.toUpperCase().indexOf("FTP:") == 0) {
-      return 2;
-    } else {
-      return 0;
-    }
-  }
+
 }
