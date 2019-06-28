@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-public abstract class ResouceVO {
+public abstract class ResourceVO {
   String resName;
   String resContent;
 
@@ -12,7 +12,7 @@ public abstract class ResouceVO {
     return resName;
   }
 
-  public ResouceVO setResName(String resName) {
+  public ResourceVO setResName(String resName) {
     this.resName = resName;
     return this;
   }
@@ -21,7 +21,7 @@ public abstract class ResouceVO {
     return resContent;
   }
 
-  public ResouceVO setResContent(String resContent) {
+  public ResourceVO setResContent(String resContent) {
     this.resContent = resContent;
     return this;
   }

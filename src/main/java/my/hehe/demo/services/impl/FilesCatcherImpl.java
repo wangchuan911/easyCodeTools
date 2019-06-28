@@ -11,13 +11,14 @@ import my.hehe.demo.common.annotation.ReflectionUtils;
 import my.hehe.demo.common.annotation.ResTypeCheck;
 import my.hehe.demo.common.annotation.ResZip;
 import my.hehe.demo.services.FilesCatcher;
-import my.hehe.demo.services.vo.ResouceVO;
+import my.hehe.demo.services.vo.ResourceVO;
 import org.apache.commons.lang.StringUtils;
 import org.reflections.Reflections;
 
 import java.io.*;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -112,7 +113,7 @@ public class FilesCatcherImpl implements FilesCatcher {
         future.fail(new NullPointerException());
       }
       final Set<String> simpleFiles = new ConcurrentHashSet<>();
-      final Set<ResouceVO> unSimpleFiles = new ConcurrentHashSet<>();
+      final Set<ResourceVO> unSimpleFiles = new ConcurrentHashSet<>();
       final Set<String> errorFile = new ConcurrentHashSet<>();
       //遍历文本，找文件
     fileList.forEach(fileName -> {
@@ -173,20 +174,24 @@ public class FilesCatcherImpl implements FilesCatcher {
     if (fileList == null || fileList.size() == 0) {
       future.fail(new NullPointerException());
     }
+    final String KEY_ZIP_OS="zipOutputStream";
+    final String KEY_FIL_NAM="zipOfFile";
     final Set<String> simpleFiles = new ConcurrentHashSet<>();
-    final Set<ResouceVO> unSimpleFiles = new ConcurrentHashSet<>();
+    final Set<ResourceVO> unSimpleFiles = new ConcurrentHashSet<>();
     final Set<String> errorFile = new ConcurrentHashSet<>();
+    final Set<Class<? extends ResourceVO>> classSet = new HashSet<>();
     AsyncFlow.getInstance()
       .then("遍历文本，找文件", flow -> {
         try {
           fileList.forEach(fileName -> {
             if (typeCheckMethod == null) return;
-            ResouceVO resouceVO = null;
+            ResourceVO resourceVO = null;
             for (Method method : typeCheckMethod) {
               try {
-                resouceVO = (ResouceVO) method.invoke(null, fileName);
-                if (resouceVO != null) {
-                  unSimpleFiles.add(resouceVO);
+                resourceVO = (ResourceVO) method.invoke(null, fileName);
+                if (resourceVO != null) {
+                  unSimpleFiles.add(resourceVO);
+                  classSet.add(resourceVO.getClass());
                   break;
                 }
               } catch (Throwable e) {
@@ -194,7 +199,7 @@ public class FilesCatcherImpl implements FilesCatcher {
                 errorFile.add(fileName + " " + e.getMessage());
               }
             }
-            if (resouceVO == null) {
+            if (resourceVO == null) {
               getFile(simpleFiles, errorFile, fileName);
             }
           });
@@ -207,8 +212,8 @@ public class FilesCatcherImpl implements FilesCatcher {
       try {
         File zipOfFile = this.careateZipFile();
         ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
-        flow.getParam().put("zipOfFile", zipOfFile);
-        flow.getParam().put("zipOutputStream", zipOutputStream);
+        flow.getParam().put(KEY_FIL_NAM, zipOfFile);
+        flow.getParam().put(KEY_ZIP_OS, zipOutputStream);
       } catch (Exception e) {
         flow.fail(e);
       }
@@ -216,7 +221,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     }).then("把一般文件压缩到zip文件中", flow -> {
       try {
         if (simpleFiles.size() > 0) {
-          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get("zipOutputStream");
+          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
           this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
         }
       } catch (Exception e) {
@@ -227,11 +232,13 @@ public class FilesCatcherImpl implements FilesCatcher {
 
       try {
         if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
-          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get("zipOutputStream");
-
+          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
+          AtomicInteger atomicInteger = new AtomicInteger(classSet.size());
           for (Method method : typeZipMethod) {
-            method.invoke(null,zipOutputStream,unSimpleFiles,errorFile,(Handler<Void>)aVoid -> {
-              flow.next();
+            method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
+              if (atomicInteger.decrementAndGet() == 0) {
+                flow.next();
+              }
             });
           }
         } else {
@@ -241,8 +248,8 @@ public class FilesCatcherImpl implements FilesCatcher {
         flow.fail(e);
       }
     }).finalThen(flow -> {
-      ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get("zipOutputStream");
-      File zipOfFile = (File) flow.getParam().get("zipOfFile");
+      ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
+      File zipOfFile = (File) flow.getParam().get(KEY_FIL_NAM);
       //生成失败信息
       try {
 

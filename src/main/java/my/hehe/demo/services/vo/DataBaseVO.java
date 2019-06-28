@@ -10,10 +10,9 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-public class DataBaseVO extends ResouceVO {
+public class DataBaseVO extends ResourceVO {
   private String type;
   private String user;
 
@@ -51,19 +50,19 @@ public class DataBaseVO extends ResouceVO {
   }
 
   @ResTypeCheck
-  public static ResouceVO createRes(String text) {
+  public static ResourceVO createRes(String text) {
     if (text.toUpperCase().indexOf("DATA:") < 0) return null;
     String[] var = text.split(":")[1].split("\\.");
     return new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase());
   }
 
   @ResZip
-  public static void zipDataFile(ZipOutputStream zipOutputStream, Set<ResouceVO> dataBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
+  public static void zipDataFile(ZipOutputStream zipOutputStream, Set<ResourceVO> dataBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
     BufferedInputStream bis = null;
     AtomicInteger atomicInteger = new AtomicInteger(0);
-    for (ResouceVO resouceVO : dataBaseVOS) {
-      if (resouceVO instanceof DataBaseVO) {
-        DataBaseVO dataBaseVO = (DataBaseVO) resouceVO;
+    for (ResourceVO resourceVO : dataBaseVOS) {
+      if (resourceVO instanceof DataBaseVO) {
+        DataBaseVO dataBaseVO = (DataBaseVO) resourceVO;
         atomicInteger.incrementAndGet();
         try {
           JdbcUtils.getJdbcClient("rimdbTest").querySingleWithParams("select sf_get_source_from_db(?,?,?) from dual", new JsonArray().add(dataBaseVO.getType()).add(dataBaseVO.getUser()).add(dataBaseVO.getResName()), jsonArrayAsyncResult -> {
@@ -71,7 +70,7 @@ public class DataBaseVO extends ResouceVO {
               JsonArray jsonArray = null;
               String content = (jsonArray = jsonArrayAsyncResult.result()).getString(0);
               try {
-                ResouceVO.writeZip(zipOutputStream, content, dataBaseVO.getUser() + "-" + dataBaseVO.getResName());
+                ResourceVO.writeZip(zipOutputStream, content, dataBaseVO.getUser() + "-" + dataBaseVO.getResName());
               } catch (IOException e) {
                 errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
               }

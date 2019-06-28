@@ -2,8 +2,6 @@ package my.hehe.demo.services.vo;
 
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.sql.ResultSet;
 import my.hehe.demo.common.JdbcUtils;
 import my.hehe.demo.common.annotation.ResTypeCheck;
 import my.hehe.demo.common.annotation.ResZip;
@@ -13,10 +11,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-public class TableBaseVO extends ResouceVO {
+public class TableBaseVO extends ResourceVO {
   private String type;
   private String user;
 
@@ -54,7 +51,7 @@ public class TableBaseVO extends ResouceVO {
   }
 
   @ResTypeCheck
-  public static ResouceVO createRes(String text) {
+  public static ResourceVO createRes(String text) {
     final String key = "TABLE:";
     if (text.toUpperCase().indexOf(key) < 0) return null;
     String[] var = text.split(":")[1].split("@");
@@ -62,12 +59,12 @@ public class TableBaseVO extends ResouceVO {
   }
 
   @ResZip
-  public static void zipDataFile(ZipOutputStream zipOutputStream, Set<ResouceVO> tableBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
+  public static void zipDataFile(ZipOutputStream zipOutputStream, Set<ResourceVO> tableBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
     BufferedInputStream bis = null;
     AtomicInteger atomicInteger = new AtomicInteger(0);
-    for (ResouceVO resouceVO : tableBaseVOS) {
-      if (resouceVO instanceof TableBaseVO) {
-        TableBaseVO tableBaseVO = (TableBaseVO) resouceVO;
+    for (ResourceVO resourceVO : tableBaseVOS) {
+      if (resourceVO instanceof TableBaseVO) {
+        TableBaseVO tableBaseVO = (TableBaseVO) resourceVO;
         atomicInteger.incrementAndGet();
         try {
           StringBuilder text = new StringBuilder("ALTER ").append(tableBaseVO.getType()).append(' ').append(tableBaseVO.getResName()).append(" add (");
@@ -99,7 +96,7 @@ public class TableBaseVO extends ResouceVO {
                 text.append(JsonArray1ine.getString(++j)).append((results.size() < i + 1) ? ',' : ')');
               }
               try {
-                ResouceVO.writeZip(zipOutputStream, text.toString(), tableBaseVO.getUser() + "-" + tableBaseVO.getResName());
+                ResourceVO.writeZip(zipOutputStream, text.toString(), tableBaseVO.getUser() + "-" + tableBaseVO.getResName());
               } catch (IOException e) {
                 errorFile.add(tableBaseVO.toString() + " " + e.getMessage());
               }
