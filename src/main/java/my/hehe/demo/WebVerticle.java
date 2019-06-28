@@ -15,6 +15,7 @@ import io.vertx.ext.web.handler.TemplateHandler;
 import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
 import my.hehe.demo.common.JdbcUtils;
 import my.hehe.demo.services.FilesCatcher;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -32,6 +33,17 @@ public class WebVerticle extends AbstractVerticle {
   public void start(Future<Void> startFuture) throws Exception {
     Handler bodyHandler = BodyHandler.create();
     TemplateEngine engine = ThymeleafTemplateEngine.create(vertx);
+    {
+      // 定时模板解析器,表示从类加载路径下找模板
+      ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
+      /*// 设置模板的前缀，我们设置的是templates目录
+      templateResolver.setPrefix("templates");
+      // 设置后缀为.html文件
+      templateResolver.setSuffix(".html");*/
+      templateResolver.setTemplateMode("HTML5");
+      templateResolver.setCharacterEncoding("utf-8");
+      ((ThymeleafTemplateEngine) engine).getThymeleafTemplateEngine().setTemplateResolver(templateResolver);
+    }
     TemplateHandler handler = TemplateHandler.create(engine);
     FilesCatcher filesCatcher = FilesCatcher.createProxy(vertx);
     Router router = Router.router(vertx);
