@@ -25,9 +25,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class WebVerticle extends AbstractVerticle {
-
+  Pattern p = Pattern.compile("(-){10,}");
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
@@ -70,10 +71,35 @@ public class WebVerticle extends AbstractVerticle {
         } catch (UnsupportedEncodingException e) {
           e.printStackTrace();
         }
+        boolean textMode = false;
+        StringBuilder mode = new StringBuilder();
         String[] list = string.split("\r\n");
         for (String str : list) {
-          if (StringUtil.isNullOrEmpty(str)) continue;
-          listSet.add(str.trim());
+          if (!textMode) {
+            {
+              String[] text = p.split(str);
+              if (text.length == 3 && "<".equals(text[0]) && !"end".equals(text[1].toLowerCase()) && ">".equals(text[2])) {
+                textMode = true;
+                mode.setLength(0);
+                if(text[1].indexOf(":")<0){
+                  mode.append("TEXT:");
+                }
+                mode.append(text[1]).append(':');
+                continue;
+              }
+            }
+            if (StringUtil.isNullOrEmpty(str)) continue;
+            listSet.add(str.trim());
+          } else {
+            String[] text = p.split(str);
+            if (text.length == 3 && "<".equals(text[0]) && "end".equals(text[1].toLowerCase()) && ">".equals(text[2])) {
+              textMode = false;
+              listSet.add(mode.toString());
+              mode.setLength(0);
+            } else {
+              mode.append(str).append("\r\n");
+            }
+          }
         }
       }
 
