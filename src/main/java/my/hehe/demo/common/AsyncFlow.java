@@ -9,6 +9,7 @@ import my.hehe.demo.common.annotation.UtilsInital;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 public class AsyncFlow {
   //流程列队
@@ -108,17 +109,17 @@ public class AsyncFlow {
       }
     }, async -> {
       if (!async.succeeded()) {
-        this.fail(async.cause());
+        this.doFail(async.cause());
       }
     });
 
   }
 
   public void fail(Throwable e) {
-    if (!currentFuture.isComplete()) {
-      currentFuture.fail(e);
-      return;
-    }
+    currentFuture.fail(e);
+  }
+
+  private void doFail(Throwable e) {
     if (this.currentFlow != null && this.currentFlow.length() > 0) {
       String err = this.errorMsg((e.getMessage() == null ? e.toString() : e.getMessage()));
       e = new Throwable(err, e);
@@ -130,11 +131,6 @@ public class AsyncFlow {
   }
 
   public void fail(String var) {
-    /*String error = (this.currentFlow != null && this.currentFlow.length() > 0) ? this.errorMsg(var) : var;
-    if (this.catchHandler != null) {
-      this.catchHandler.handle(error);
-    }
-    this.end();*/
     this.fail(new Throwable(var));
   }
 
