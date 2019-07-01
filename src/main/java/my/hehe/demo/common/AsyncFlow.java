@@ -6,10 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.annotation.UtilsInital;
 
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -118,6 +115,10 @@ public class AsyncFlow {
   }
 
   public void fail(Throwable e) {
+    if (!currentFuture.isComplete()) {
+      currentFuture.fail(e);
+      return;
+    }
     if (this.currentFlow != null && this.currentFlow.length() > 0) {
       String err = this.errorMsg((e.getMessage() == null ? e.toString() : e.getMessage()));
       e = new Throwable(err, e);
@@ -129,11 +130,12 @@ public class AsyncFlow {
   }
 
   public void fail(String var) {
-    String error = (this.currentFlow != null && this.currentFlow.length() > 0) ? this.errorMsg(var) : var;
+    /*String error = (this.currentFlow != null && this.currentFlow.length() > 0) ? this.errorMsg(var) : var;
     if (this.catchHandler != null) {
       this.catchHandler.handle(error);
     }
-    this.end();
+    this.end();*/
+    this.fail(new Throwable(var));
   }
 
   private String errorMsg(String var) {
