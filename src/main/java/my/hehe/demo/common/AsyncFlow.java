@@ -36,7 +36,7 @@ public class AsyncFlow {
 
   private boolean isStarting = false;
   private boolean isComplete = false;
-  private boolean isError=false;
+  private boolean isError = false;
 
 
   private AsyncFlow() {
@@ -121,9 +121,9 @@ public class AsyncFlow {
 
   private void doFail(Throwable e) {
     try {
-      this.isError=true;
+      this.isError = true;
       if (this.currentFlow != null && this.currentFlow.length() > 0) {
-        String err = this.errorMsg((e.getMessage() == null ? e.toString() : e.getMessage()));
+        String err = this.errorMsg(e);
         e = new Throwable(err, e);
       }
       if (this.catchHandler != null) {
@@ -139,8 +139,16 @@ public class AsyncFlow {
     this.fail(new Throwable(var));
   }
 
-  private String errorMsg(String var) {
-    return new StringBuilder("Handler[ ").append(currentFlow).append(" ] -> Excetion[ ").append(var).append(" ]").toString();
+  private String errorMsg(Throwable var) {
+    /*StringBuilder sb = new StringBuilder();
+    {
+      StackTraceElement[] stackTraceElements = var.getStackTrace();
+      for (int i = 0; i < var.getStackTrace().length; i++) {
+        sb.append(stackTraceElements[i].toString()).append('\n');
+      }
+    }*/
+    String errorFormat = "流程[ %s ] 执行异常 [ %s ] 原因 [ %s ] 位置 { %s }";
+    return String.format(errorFormat, this.currentFlow, var.getClass().getName(), var.getMessage(), (var.getClass() == Throwable.class ? var.getStackTrace()[1] : var.getStackTrace()[0]).toString());
   }
 
 
@@ -175,6 +183,14 @@ public class AsyncFlow {
 
   public Throwable getError() {
     return this.throwable;
+  }
+
+  public boolean isComplete() {
+    return isComplete;
+  }
+
+  public boolean isError() {
+    return isError;
   }
 
   public static void main(String[] args) {

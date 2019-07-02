@@ -174,8 +174,8 @@ public class FilesCatcherImpl implements FilesCatcher {
     if (fileList == null || fileList.size() == 0) {
       future.fail(new NullPointerException());
     }
-    final String KEY_ZIP_OS="zipOutputStream";
-    final String KEY_FIL_NAM="zipOfFile";
+    final String KEY_ZIP_OS = "zipOutputStream";
+    final String KEY_FIL_NAM = "zipOfFile";
     final Set<String> simpleFiles = new ConcurrentHashSet<>();
     final Set<ResourceVO> unSimpleFiles = new ConcurrentHashSet<>();
     final Set<String> errorFile = new ConcurrentHashSet<>();
@@ -247,6 +247,9 @@ public class FilesCatcherImpl implements FilesCatcher {
       } catch (Exception e) {
         flow.fail(e);
       }
+    }).catchThen(asyncFlow -> {
+      asyncFlow.getError().printStackTrace();
+      future.fail(asyncFlow.getError());
     }).finalThen(flow -> {
       ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
       File zipOfFile = (File) flow.getParam().get(KEY_FIL_NAM);
@@ -259,7 +262,8 @@ public class FilesCatcherImpl implements FilesCatcher {
       }
       //关闭数据流
       this.close(zipOutputStream);
-      future.complete(zipOfFile.getAbsolutePath());
+      if (!flow.isError())
+        future.complete(zipOfFile.getAbsolutePath());
     }).start();
   }
 
