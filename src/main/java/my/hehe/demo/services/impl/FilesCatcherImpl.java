@@ -405,23 +405,25 @@ public class FilesCatcherImpl implements FilesCatcher {
   }
 
   private void close(InputStream in) {
-    try {
+    /*try {
       if (in != null) {
         in.close();
       }
     } catch (Exception e) {
       e.printStackTrace();
-    }
+    }*/
+    StreamUtils.close(in);
   }
 
   private void close(OutputStream out) {
-    try {
+    /*try {
       if (out != null) {
         out.close();
       }
     } catch (Exception e) {
       e.printStackTrace();
-    }
+    }*/
+    StreamUtils.close(out);
   }
 
   private void createFailFile(Set<String> fails, ZipOutputStream zipOutputStream) throws Exception {

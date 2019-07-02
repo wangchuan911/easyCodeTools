@@ -5,13 +5,13 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <script type="text/javascript">
     function init() {
-      var msg = '[[${msg}]]'
+      var msg = document.getElementById("msg").innerText;
       alert(msg);
       window.history.back();
     }
   </script>
 </head>
 <body onload="init()">
-
+<p id="msg" hidden="hidden" th:text="${msg}"></p>
 </body>
 </html>

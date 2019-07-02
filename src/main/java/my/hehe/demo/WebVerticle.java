@@ -4,27 +4,24 @@ import io.netty.util.internal.StringUtil;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.common.template.TemplateEngine;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.TemplateHandler;
 import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
-import my.hehe.demo.common.JdbcUtils;
 import my.hehe.demo.services.FilesCatcher;
+import my.hehe.demo.services.FilesDeploy;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
 import java.net.URLDecoder;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 public class WebVerticle extends AbstractVerticle {
@@ -47,6 +44,7 @@ public class WebVerticle extends AbstractVerticle {
     }
     TemplateHandler handler = TemplateHandler.create(engine);
     FilesCatcher filesCatcher = FilesCatcher.createProxy(vertx);
+    FilesDeploy filesDeploy = FilesDeploy.createProxy(vertx);
     Router router = Router.router(vertx);
     router.get("/*").handler(handler);
     router.post("/catchFile").handler(bodyHandler).blockingHandler(routingContext -> {
@@ -81,7 +79,7 @@ public class WebVerticle extends AbstractVerticle {
               if (text.length == 3 && "<".equals(text[0]) && !"end".equals(text[1].toLowerCase()) && ">".equals(text[2])) {
                 textMode = true;
                 mode.setLength(0);
-                if(text[1].indexOf(":")<0){
+                if (text[1].indexOf(":") < 0) {
                   mode.append("TEXT:");
                 }
                 mode.append(text[1]).append(':');
@@ -131,6 +129,26 @@ public class WebVerticle extends AbstractVerticle {
         }
       });
     });
+    router.post("/deployFile").handler(bodyHandler).blockingHandler(routingContext -> {
+      Set<FileUpload> fileUploads = routingContext.fileUploads();
+      final AtomicInteger atomicInteger = new AtomicInteger(fileUploads.size());
+      for (FileUpload fileUpload : fileUploads) {
+        String uploadFile = fileUpload.uploadedFileName();
+        filesDeploy.dual(uploadFile, stringAsyncResult -> {
+          atomicInteger.decrementAndGet();
+          if (stringAsyncResult.failed()) return;
+          if (atomicInteger.get() == 0) {
+            File f = new File(uploadFile);
+            if (f.exists()) {
+              System.out.println(f.getName());
+              f.delete();
+            }
+            this.goResultHtml(engine, new JsonObject().put("msg", "上传完成"), routingContext);
+            return;
+          }
+        });
+      }
+    });
     int port = config().getJsonObject("server").getJsonObject("port").getInteger("web");
     vertx.createHttpServer().requestHandler(router).listen(port, http -> {
       if (http.succeeded()) {
@@ -142,5 +160,15 @@ public class WebVerticle extends AbstractVerticle {
     });
   }
 
+  private void goResultHtml(TemplateEngine engine, JsonObject jsonObject, RoutingContext routingContext) {
+    engine.render(new JsonObject().put("msg", "上传完成"), "templates/result.html", res -> {
+      if (res.succeeded()) {
+        routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
+      } else {
+        res.cause().printStackTrace();
+        routingContext.fail(res.cause());
+      }
+    });
+  }
 
 }
