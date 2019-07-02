@@ -21,11 +21,10 @@ public class AsyncFlow {
   //catch 执行器
   static private Vertx vertx = null;
 
-  private Handler catchHandler = o -> {
-    if (o instanceof Throwable) {
-      ((Throwable) o).printStackTrace();
-    } else
-      System.out.println(o.toString());
+  private Throwable throwable = null;
+
+  private Handler<AsyncFlow> catchHandler = asyncFlow -> {
+    asyncFlow.getError().printStackTrace();
   };
   //finlly 执行器
   private Handler<AsyncFlow> finalHandler = null;
@@ -37,6 +36,7 @@ public class AsyncFlow {
 
   private boolean isStarting = false;
   private boolean isComplete = false;
+  private boolean isError=false;
 
 
   private AsyncFlow() {
@@ -120,14 +120,19 @@ public class AsyncFlow {
   }
 
   private void doFail(Throwable e) {
-    if (this.currentFlow != null && this.currentFlow.length() > 0) {
-      String err = this.errorMsg((e.getMessage() == null ? e.toString() : e.getMessage()));
-      e = new Throwable(err, e);
+    try {
+      this.isError=true;
+      if (this.currentFlow != null && this.currentFlow.length() > 0) {
+        String err = this.errorMsg((e.getMessage() == null ? e.toString() : e.getMessage()));
+        e = new Throwable(err, e);
+      }
+      if (this.catchHandler != null) {
+        throwable = e;
+        this.catchHandler.handle(this);
+      }
+    } finally {
+      this.end();
     }
-    if (this.catchHandler != null) {
-      this.catchHandler.handle(e);
-    }
-    this.end();
   }
 
   public void fail(String var) {
@@ -153,7 +158,7 @@ public class AsyncFlow {
     this.currentFuture = null;
   }
 
-  public AsyncFlow catchThen(Handler throwableHandler) {
+  public AsyncFlow catchThen(Handler<AsyncFlow> throwableHandler) {
     this.catchHandler = throwableHandler;
     return this;
   }
@@ -166,6 +171,10 @@ public class AsyncFlow {
   public synchronized Map getParam() {
     if (this.busMap == null) this.busMap = new ConcurrentHashMap();
     return this.busMap;
+  }
+
+  public Throwable getError() {
+    return this.throwable;
   }
 
   public static void main(String[] args) {
@@ -185,8 +194,9 @@ public class AsyncFlow {
         }).then("flow" + a.incrementAndGet(), flow -> {
           System.out.println(b.incrementAndGet());
           String aa = null;
-          aa.length();
-          flow.next();
+//          aa.length();
+//          flow.next();
+          flow.fail("error");
 
         }).then("flow" + a.incrementAndGet(), flow -> {
 
