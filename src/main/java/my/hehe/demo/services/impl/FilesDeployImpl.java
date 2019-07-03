@@ -3,30 +3,19 @@ package my.hehe.demo.services.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.AsyncFlow;
 import my.hehe.demo.common.StreamUtils;
 import my.hehe.demo.common.annotation.ReflectionUtils;
-import my.hehe.demo.common.annotation.ResTypeCheck;
-import my.hehe.demo.common.annotation.ResZip;
-import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.FilesDeploy;
 import my.hehe.demo.services.vo.DeployVO;
 import my.hehe.demo.services.vo.ResourceVO;
-import org.apache.commons.lang.StringUtils;
-import org.reflections.Reflections;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 public class FilesDeployImpl implements FilesDeploy {
 
@@ -78,6 +67,7 @@ public class FilesDeployImpl implements FilesDeploy {
               deployVO.setPackageType(name);
               deployVO.setPath(jsonObject.getString("path"));
               deployVO.setProjectName(key);
+              deployVO.setConfiguration(jsonObject);
               synchronized (deployVOS) {
                 deployVOS.put(key, deployVO);
               }
@@ -130,19 +120,6 @@ public class FilesDeployImpl implements FilesDeploy {
               pj = zipName.substring(0, idx);
             }
             if (deployVOS.containsKey(pj)) {
-              /*JsonObject deploy = deploys.getJsonObject(pj);
-              String deployName = deploy.getString("path") + zipName.substring(idx);
-              File file = new File(deployName);
-              if (file.exists()) {
-                file.renameTo(new File(deployName + "." + ((Calendar.getInstance().getTimeInMillis()) + ".bak")));
-              }
-              File parentFile = file.getParentFile();
-              if (!parentFile.exists()) {
-                parentFile.mkdirs();
-              }
-              file.createNewFile();
-              fileOutputStream = new FileOutputStream(file);
-              StreamUtils.writeStream(zipInputStream, fileOutputStream);*/
               DeployVO deployVO = deployVOS.get(pj);
               deployVO.deploy(zipInputStream, zipEntry);
             }

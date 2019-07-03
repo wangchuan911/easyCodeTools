@@ -1,5 +1,7 @@
 package my.hehe.demo.services.vo;
 
+import io.vertx.core.json.JsonObject;
+
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -34,4 +36,6 @@ public abstract class DeployVO {
   }
 
   public abstract void deploy(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable;
+
+  public abstract void setConfiguration(JsonObject jsonObject);
 }
