@@ -19,10 +19,7 @@ import org.reflections.Reflections;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -110,7 +107,7 @@ public class FilesDeployImpl implements FilesDeploy {
               String deployName = deploy.getString("path") + zipName.substring(idx);
               File file = new File(deployName);
               if (file.exists()) {
-                file.delete();
+                file.renameTo(new File(deployName + "." + ((Calendar.getInstance().getTimeInMillis()) + ".bak")));
               }
               File parentFile = file.getParentFile();
               if (!parentFile.exists()) {
