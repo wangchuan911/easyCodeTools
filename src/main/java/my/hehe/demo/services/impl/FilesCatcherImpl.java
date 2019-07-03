@@ -398,10 +398,11 @@ public class FilesCatcherImpl implements FilesCatcher {
 
 
   private void writeZipStream(InputStream in, OutputStream out) throws IOException {
-    int b;
+    /*int b;
     while ((b = in.read()) != -1) {
       out.write(b); // 将字节流写入当前zip目录
-    }
+    }*/
+    StreamUtils.writeStream(in, out);
   }
 
   private void close(InputStream in) {

@@ -4,6 +4,7 @@ import io.netty.util.internal.StringUtil;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
@@ -26,6 +27,8 @@ import java.util.regex.Pattern;
 
 public class WebVerticle extends AbstractVerticle {
   Pattern p = Pattern.compile("(-){10,}");
+  JsonObject serverConfig = null;
+  boolean isClent = true;
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
@@ -42,6 +45,9 @@ public class WebVerticle extends AbstractVerticle {
       templateResolver.setCharacterEncoding("utf-8");
       ((ThymeleafTemplateEngine) engine).getThymeleafTemplateEngine().setTemplateResolver(templateResolver);
     }
+    serverConfig = config().getJsonObject("server");
+    isClent = serverConfig.getString("mode", "client").equals("client");
+
     TemplateHandler handler = TemplateHandler.create(engine);
     FilesCatcher filesCatcher = FilesCatcher.createProxy(vertx);
     FilesDeploy filesDeploy = FilesDeploy.createProxy(vertx);
@@ -53,7 +59,7 @@ public class WebVerticle extends AbstractVerticle {
       {
         MultiMap params = httpServerRequest.formAttributes();
         String string = params.get("text");
-        if (StringUtil.isNullOrEmpty(string)) {
+        if (StringUtil.isNullOrEmpty(string) || !isClent) {
           engine.render(new JsonObject().put("msg", "fail!"), "templates/result.html", res -> {
             if (res.succeeded()) {
               routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
@@ -130,6 +136,10 @@ public class WebVerticle extends AbstractVerticle {
       });
     });
     router.post("/deployFile").handler(bodyHandler).blockingHandler(routingContext -> {
+      if (isClent) {
+        this.goResultHtml(engine, new JsonObject().put("msg", "fail!"), routingContext);
+        return;
+      }
       Set<FileUpload> fileUploads = routingContext.fileUploads();
       final AtomicInteger atomicInteger = new AtomicInteger(fileUploads.size());
       for (FileUpload fileUpload : fileUploads) {
@@ -149,11 +159,11 @@ public class WebVerticle extends AbstractVerticle {
         });
       }
     });
-    int port = config().getJsonObject("server").getJsonObject("port").getInteger("web");
+    int port = serverConfig.getJsonObject("port").getInteger("web");
     vertx.createHttpServer().requestHandler(router).listen(port, http -> {
       if (http.succeeded()) {
         startFuture.complete();
-        System.out.println("HTTP server started http://localhost:" + port + "/index.html");
+        System.out.println("HTTP server started http://localhost:" + port + "/get.html");
       } else {
         startFuture.fail(http.cause());
       }
@@ -161,7 +171,7 @@ public class WebVerticle extends AbstractVerticle {
   }
 
   private void goResultHtml(TemplateEngine engine, JsonObject jsonObject, RoutingContext routingContext) {
-    engine.render(new JsonObject().put("msg", "上传完成"), "templates/result.html", res -> {
+    engine.render(jsonObject, "templates/result.html", res -> {
       if (res.succeeded()) {
         routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
       } else {
