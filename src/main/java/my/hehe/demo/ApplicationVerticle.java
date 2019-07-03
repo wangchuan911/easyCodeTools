@@ -22,7 +22,7 @@ public class ApplicationVerticle extends AbstractVerticle {
       DeploymentOptions workerDeploymentOptions = new DeploymentOptions()
         .setWorker(true)
         // As worker verticles are never executed concurrently by Vert.x by more than one thread,
-        // deploy multiple instances to avoid serializing requests.
+        // deploySingle multiple instances to avoid serializing requests.
         .setInstances(4)
         .setConfig(vertx.getOrCreateContext().config());
       vertx.deployVerticle(WorkVerticle.class.getName(), workerDeploymentOptions);

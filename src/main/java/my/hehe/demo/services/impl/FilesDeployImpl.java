@@ -121,7 +121,7 @@ public class FilesDeployImpl implements FilesDeploy {
             }
             if (deployVOS.containsKey(pj)) {
               DeployVO deployVO = deployVOS.get(pj);
-              deployVO.deploy(zipInputStream, zipEntry);
+              deployVO.deploySingle(zipInputStream, zipEntry);
             }
           } catch (IOException e) {
             e.printStackTrace();
@@ -131,6 +131,9 @@ public class FilesDeployImpl implements FilesDeploy {
             continue;
           }
         } while (zipEntry != null);
+        deployVOS.entrySet().forEach(stringDeployVOEntry -> {
+          stringDeployVOEntry.getValue().deployAllAfter();
+        });
         asyncFlow.next();
       }).catchThen(asyncFlow -> {
         asyncFlow.getError().printStackTrace();

@@ -29,6 +29,7 @@ public class WebVerticle extends AbstractVerticle {
   Pattern p = Pattern.compile("(-){10,}");
   JsonObject serverConfig = null;
   boolean isClent = true;
+  boolean isServer = true;
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
@@ -47,6 +48,7 @@ public class WebVerticle extends AbstractVerticle {
     }
     serverConfig = config().getJsonObject("server");
     isClent = serverConfig.getString("mode", "client").equals("client");
+    isServer = serverConfig.getString("mode", "server").equals("server");
 
     TemplateHandler handler = TemplateHandler.create(engine);
     FilesCatcher filesCatcher = FilesCatcher.createProxy(vertx);
@@ -136,7 +138,7 @@ public class WebVerticle extends AbstractVerticle {
       });
     });
     router.post("/deployFile").handler(bodyHandler).blockingHandler(routingContext -> {
-      if (isClent) {
+      if (!isServer) {
         this.goResultHtml(engine, new JsonObject().put("msg", "fail!"), routingContext);
         return;
       }

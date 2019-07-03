@@ -14,11 +14,8 @@ import java.util.zip.ZipOutputStream;
 
 public class ClassDeployVO extends DeployVO {
 
-  public void setConfiguration(JsonObject jsonObject) {
-  }
-
   @Override
-  public void deploy(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
+  public void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
     FileOutputStream fileOutputStream = null;
     try {
       String zipName = zipEntry.getName();

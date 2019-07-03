@@ -27,6 +27,10 @@
       "ires": {
         "path": "D:\\aaaa",
         "mode": "class"
+      },
+      "resservice": {
+        "path": "D:\\Workspaces\\intellij\\resservice\\target\\resservice-8.0-RELEASE",
+        "mode": "jar"
       }
     },
     "tmpFilePath": "D:\\zip"

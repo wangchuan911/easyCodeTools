@@ -35,7 +35,13 @@ public abstract class DeployVO {
     this.packageType = packageType;
   }
 
-  public abstract void deploy(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable;
+  public abstract void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable;
 
-  public abstract void setConfiguration(JsonObject jsonObject);
+  public void setConfiguration(JsonObject jsonObject) {
+
+  }
+
+  public void deployAllAfter() {
+
+  }
 }
