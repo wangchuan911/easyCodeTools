@@ -4,6 +4,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.impl.ConcurrentHashSet;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.AsyncFlow;
@@ -13,11 +14,13 @@ import my.hehe.demo.common.annotation.ResTypeCheck;
 import my.hehe.demo.common.annotation.ResZip;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.FilesDeploy;
+import my.hehe.demo.services.vo.DeployVO;
 import my.hehe.demo.services.vo.ResourceVO;
 import org.apache.commons.lang.StringUtils;
 import org.reflections.Reflections;
 
 import java.io.*;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,7 +43,7 @@ public class FilesDeployImpl implements FilesDeploy {
     return filesDeploy;
   }
 
-  JsonObject confDeploy = null;
+  Map<String, DeployVO> deployVOS = null;
   JsonObject deploys = null;
 
   private FilesDeployImpl() {
@@ -50,14 +53,43 @@ public class FilesDeployImpl implements FilesDeploy {
   public synchronized void setConfig(JsonObject config) {
 
 
-    if (confDeploy == null) {
-      confDeploy = new JsonObject();
+    if (deployVOS == null) {
+      deployVOS = new HashMap<>();
     } else {
       return;
     }
 
     deploys = config.getJsonObject("deploy");
 
+    Set<Class<? extends DeployVO>> subTypesOf = ReflectionUtils.getReflection().getSubTypesOf(DeployVO.class);
+
+    {
+      Set<String> keys = deploys.getMap().keySet();
+      keys.forEach(key -> {
+        JsonObject jsonObject = deploys.getJsonObject(key);
+        String name = jsonObject.getString("mode");
+        String modeToClass = name.replaceFirst(name.charAt(0) + "", (name.charAt(0) + "").toUpperCase()) + DeployVO.class.getSimpleName();
+        System.out.println(String.format("regist Deploy class [ %s ]", modeToClass));
+        for (Class aClass : subTypesOf) {
+          if (modeToClass.equals(aClass.getSimpleName())) {
+            try {
+              Constructor constructor = aClass.getConstructor(null);
+              DeployVO deployVO = (DeployVO) constructor.newInstance(null);
+              deployVO.setPackageType(name);
+              deployVO.setPath(jsonObject.getString("path"));
+              deployVO.setProjectName(key);
+              synchronized (deployVOS) {
+                deployVOS.put(key, deployVO);
+              }
+            } catch (Throwable e) {
+              e.printStackTrace();
+            } finally {
+              break;
+            }
+          }
+        }
+      });
+    }
 
   }
 
@@ -87,23 +119,18 @@ public class FilesDeployImpl implements FilesDeploy {
         }).then("写入文件", asyncFlow -> {
         ZipEntry zipEntry = null;
         ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
-        FileOutputStream fileOutputStream = null;
         do {
           try {
             zipEntry = zipInputStream.getNextEntry();
             if (zipEntry == null) continue;
             String zipName = zipEntry.getName();
             String pj = null;
-            System.out.println(zipName);
-            int idx = -1;
-            {
-              idx = zipName.indexOf(File.separator);
-              if (idx > 0) {
-                pj = zipName.substring(0, idx);
-              }
+            int idx = zipName.indexOf(File.separator);
+            if (idx > 0) {
+              pj = zipName.substring(0, idx);
             }
-            if (deploys.containsKey(pj)) {
-              JsonObject deploy = deploys.getJsonObject(pj);
+            if (deployVOS.containsKey(pj)) {
+              /*JsonObject deploy = deploys.getJsonObject(pj);
               String deployName = deploy.getString("path") + zipName.substring(idx);
               File file = new File(deployName);
               if (file.exists()) {
@@ -115,13 +142,16 @@ public class FilesDeployImpl implements FilesDeploy {
               }
               file.createNewFile();
               fileOutputStream = new FileOutputStream(file);
-              StreamUtils.writeStream(zipInputStream, fileOutputStream);
+              StreamUtils.writeStream(zipInputStream, fileOutputStream);*/
+              DeployVO deployVO = deployVOS.get(pj);
+              deployVO.deploy(zipInputStream, zipEntry);
             }
           } catch (IOException e) {
             e.printStackTrace();
             continue;
-          } finally {
-            StreamUtils.close(fileOutputStream);
+          } catch (Throwable e) {
+            e.printStackTrace();
+            continue;
           }
         } while (zipEntry != null);
         asyncFlow.next();
