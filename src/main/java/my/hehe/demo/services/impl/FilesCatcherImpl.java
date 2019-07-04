@@ -272,7 +272,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     try {
       String zipOfFile = null;
       Calendar calendar = Calendar.getInstance();
-      zipOfFile = new StringBuilder(tmpFilePath).append(calendar.get(Calendar.YEAR)).append('_').append(calendar.get(Calendar.MONTH) + 1).append('_').append(calendar.get(Calendar.DATE)).append(".zip").toString();
+      zipOfFile = new StringBuilder(tmpFilePath).append(calendar.getTimeInMillis()).append(".zip").toString();
       file = new File(zipOfFile);
       if (file.exists()) {
         file.delete();
