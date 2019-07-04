@@ -3,44 +3,107 @@ package my.hehe.demo.services.vo;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.StreamUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.util.Calendar;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class JarDeployVO extends DeployVO {
   JarOutputStream jarOutputStream = null;
+  File newFile = null;
+  File file = null;
+  Set<String> updateFile = new HashSet<>();
 
   public synchronized void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
+    if (jarOutputStream == null) return;
     try {
       String zipName = zipEntry.getName().substring(this.projectName.length() + 1);
-      if (jarOutputStream == null) {
-
-        String jarFile = this.getPath();
-        File file = null;
-        {
-          file = new File(jarFile + ".jar");
-          if (!file.exists()) {
-            file = new File(jarFile + ".war");
-          }
-          if (!file.exists()) //throw new FileNotFoundException();
-            file.createNewFile();
-        }
-        jarOutputStream = new JarOutputStream(new FileOutputStream(file));
-      }
-      jarOutputStream.putNextEntry(new JarEntry(zipName));
+      JarEntry jarEntry = null;
+      jarOutputStream.putNextEntry(jarEntry = new JarEntry(zipName));
       StreamUtils.writeStream(zipInputStream, jarOutputStream);
+      String var=jarEntry.getName().replace("\\", "/");
+      updateFile.add(var);
+      System.out.println(var);
     } finally {
 
     }
   }
 
   @Override
-  public void deployAllAfter() {
-    StreamUtils.close(jarOutputStream);
+  public void deployAllAfter(ZipInputStream zipInputStream) {
+    JarFile jfile = null;
+    try {
+      if (!file.exists()) return;
+
+      jfile = new JarFile(file);
+      Enumeration<? extends JarEntry> entries = jfile.entries();
+      System.out.println(jfile.getManifest());
+      while (entries.hasMoreElements()) {
+        ZipEntry e = entries.nextElement();
+        if (updateFile.contains(e.getName())) {
+          System.out.println(String.format("skip file :$s", e.getName()));
+          continue;
+        }
+        System.out.println("copy: " + e.getName());
+        jarOutputStream.putNextEntry(e);
+        if (!e.isDirectory()) {
+          int bytesRead;
+          byte[] BUFFER = new byte[4096 * 1024];
+          InputStream inputStream = jfile.getInputStream(e);
+          while ((bytesRead = inputStream.read(BUFFER)) != -1) {
+            jarOutputStream.write(BUFFER, 0, bytesRead);
+          }
+        }
+        jarOutputStream.closeEntry();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        jfile.close();
+      } catch (Exception e) {
+      }
+    }
+    try {
+      StreamUtils.close(jarOutputStream);
+    } finally {
+      jarOutputStream = null;
+    }
+    updateFile.clear();
+    newFile = null;
+    file = null;
+  }
+
+  @Override
+  public synchronized void deployAllBefore(ZipInputStream zipInputStream) {
+    try {
+      if (jarOutputStream == null) {
+        String jarFile = this.getPath();
+        {
+          String subfix = ".jar";
+          file = new File(jarFile + subfix);
+          if (!file.exists()) {
+            file = new File(jarFile + (subfix = ".war"));
+          }
+          if (file.exists()) {
+            newFile = new File((jarFile + '-' + (Calendar.getInstance().getTimeInMillis()) + subfix));
+            newFile.createNewFile();
+            this.setPackageType(subfix);
+          }
+        }
+        jarOutputStream = new JarOutputStream(new FileOutputStream(newFile));
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      jarOutputStream = null;
+    } finally {
+
+    }
   }
 }

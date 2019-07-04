@@ -41,7 +41,11 @@ public abstract class DeployVO {
 
   }
 
-  public void deployAllAfter() {
+  public void deployAllAfter(ZipInputStream zipInputStream) {
+
+  }
+
+  public void deployAllBefore(ZipInputStream zipInputStream) {
 
   }
 }

@@ -1,7 +1,7 @@
 {
   "files": {
     "build": {
-      "resservice\\WEB-INF\\class": [
+      "resservice\\WEB-INF\\classes": [
         "D:\\Workspaces\\Eclipse-O\\resservice\\target\\classes"
       ],
       "ires": [
@@ -9,6 +9,12 @@
       ],
       "resservice": [
         "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\webapp"
+      ],
+      "IomInterfaceGX\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService\\WEB-INF\\classes"
+      ],
+      "IomInterfaceGX": [
+        "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService"
       ]
     },
     "source": {
@@ -18,6 +24,9 @@
       ],
       "D:\\Workspaces\\Eclipse-O\\03 server\\out\\production\\03 server": [
         "D:\\Workspaces\\Eclipse-O\\03 server\\src"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\src"
       ]
     },
     "sourceToBuild": {
@@ -29,7 +38,7 @@
         "mode": "class"
       },
       "resservice": {
-        "path": "D:\\Workspaces\\intellij\\resservice\\target\\resservice-8.0-RELEASE",
+        "path": "D:\\Workspaces\\Eclipse-O\\resservice\\target\\resservice-8.0-RELEASE",
         "mode": "jar"
       }
     },

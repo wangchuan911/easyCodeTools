@@ -88,6 +88,7 @@ public class AsyncFlow {
   }
 
   public void next() {
+    if (this.isError) return;
     this.undoAtCompelete();
     if (this.currentFuture != null)
       this.currentFuture.complete();
@@ -194,6 +195,17 @@ public class AsyncFlow {
   }
 
   public static void main(String[] args) {
+    /*String text = "<-------------------------------start---------------------------------->";
+
+    Pattern p = Pattern.compile("\\<\\w+\\>.+\\<\\/\\w+\\>");
+    p = Pattern.compile("(\\<(\\/)?\\w+\\>)");
+    p = Pattern.compile("(\\.)+start(\\.)+");
+    System.out.println(p.matcher(text).matches());
+    p = Pattern.compile("(-){10,}");
+    List<String> a1 = Arrays.asList(p.split(text));
+    System.out.println(a1);
+    if (true)
+      return;*/
     AtomicInteger a = new AtomicInteger(0);
     AtomicInteger b = new AtomicInteger(0);
     AsyncFlow.initUtil(Vertx.vertx(), null);

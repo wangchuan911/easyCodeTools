@@ -109,6 +109,9 @@ public class FilesDeployImpl implements FilesDeploy {
         }).then("写入文件", asyncFlow -> {
         ZipEntry zipEntry = null;
         ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
+        deployVOS.entrySet().forEach(stringDeployVOEntry -> {
+          stringDeployVOEntry.getValue().deployAllBefore(zipInputStream);
+        });
         do {
           try {
             zipEntry = zipInputStream.getNextEntry();
@@ -132,7 +135,7 @@ public class FilesDeployImpl implements FilesDeploy {
           }
         } while (zipEntry != null);
         deployVOS.entrySet().forEach(stringDeployVOEntry -> {
-          stringDeployVOEntry.getValue().deployAllAfter();
+          stringDeployVOEntry.getValue().deployAllAfter(zipInputStream);
         });
         asyncFlow.next();
       }).catchThen(asyncFlow -> {

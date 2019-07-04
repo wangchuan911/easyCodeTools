@@ -29,6 +29,6 @@ public abstract class ResourceVO {
   public static synchronized void writeZip(ZipOutputStream zipOutputStream, String content, String fileName) throws IOException {
     zipOutputStream.putNextEntry(new ZipEntry(fileName));
     zipOutputStream.write(content.toString().getBytes());
-
+    zipOutputStream.closeEntry();
   }
 }

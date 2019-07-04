@@ -391,6 +391,7 @@ public class FilesCatcherImpl implements FilesCatcher {
       bis = new BufferedInputStream(new FileInputStream(new File(file)));
       this.writeZipStream(bis, zipOutputStream);
       System.out.println("create zip file :" + zipFile);
+      zipOutputStream.closeEntry();
     } finally {
       close(bis);
     }
@@ -434,6 +435,7 @@ public class FilesCatcherImpl implements FilesCatcher {
       str += "\r\n";
       zipOutputStream.write(str.getBytes());
     }
+    zipOutputStream.closeEntry();
   }
 
 
