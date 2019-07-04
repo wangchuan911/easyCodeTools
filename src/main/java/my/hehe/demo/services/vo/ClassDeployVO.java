@@ -19,11 +19,14 @@ public class ClassDeployVO extends DeployVO {
     FileOutputStream fileOutputStream = null;
     try {
       String zipName = zipEntry.getName();
-
       String deployName = this.getPath() + zipName.substring(this.projectName.length());
       File file = new File(deployName);
+      System.out.println(zipName+"-->"+deployName);
       if (file.exists()) {
-        file.renameTo(new File(deployName + "." + ((Calendar.getInstance().getTimeInMillis()) + ".bak")));
+       /* String bakName = null;
+        System.out.print(deployName + " exists ! backup to " + (bakName = deployName + "." + ((Calendar.getInstance().getTimeInMillis()) + ".bak")));
+        file.renameTo(new File(bakName));*/
+        file.delete();
       }
       File parentFile = file.getParentFile();
       if (!parentFile.exists()) {

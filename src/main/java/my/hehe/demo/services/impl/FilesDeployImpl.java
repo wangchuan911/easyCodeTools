@@ -146,7 +146,11 @@ public class FilesDeployImpl implements FilesDeploy {
             if (zipEntry == null) continue;
             String zipName = zipEntry.getName();
             String pj = null;
-            int idx = zipName.indexOf(File.separator);
+            int idx = zipName.indexOf("\\");
+            if (idx < 0) {
+              idx = zipName.indexOf("/");
+              if (idx < 0) continue;
+            }
             if (idx > 0) {
               pj = zipName.substring(0, idx);
             }

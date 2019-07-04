@@ -22,6 +22,7 @@ public class JarDeployVO extends DeployVO {
 
   public synchronized void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
     if (jarOutputStream == null) return;
+    this.setRunning(true);
     try {
       String zipName = zipEntry.getName().substring(this.projectName.length() + 1);
       JarEntry jarEntry = null;
@@ -43,6 +44,10 @@ public class JarDeployVO extends DeployVO {
 
   @Override
   public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
+    if (!this.getRunning()) {
+      if (newFile != null) newFile.delete();
+      return;
+    }
     JarFile jfile = null;
     try {
       if (!file.exists()) return;
@@ -71,7 +76,7 @@ public class JarDeployVO extends DeployVO {
 
     } catch (Throwable e) {
       e.printStackTrace();
-      newFile.delete();
+      if (newFile != null) newFile.delete();
       throw e;
     } finally {
       try {
@@ -117,9 +122,9 @@ public class JarDeployVO extends DeployVO {
             newFile = new File((jarFile + '-' + (Calendar.getInstance().getTimeInMillis()) + "-tmp" + subfix));
             newFile.createNewFile();
             this.setPackageType(subfix);
+            jarOutputStream = new JarOutputStream(new FileOutputStream(newFile));
           }
         }
-        jarOutputStream = new JarOutputStream(new FileOutputStream(newFile));
       }
     } catch (Exception e) {
       e.printStackTrace();

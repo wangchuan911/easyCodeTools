@@ -47,13 +47,13 @@
   "server": {
     "port": {
       "web": 9099
-    },
-    "mode": "server"
+    }
+    /*"mode": null*/
   },
   "data": {
     "data1": "",
-    "data3": "lfv7lVCjip+n6JGoO+hmgoqXqE7e77zXfEzEBcz/E4h/TLLNIXOy+vXH2kwjE7OgWTj2j8Ong5Bl4DDOhxakLC7rj3TeKPyUmLD+XVPcGGWzYZn5pbSlGV4VfcKnAuCwSbkDpvzzpSwdPvC596X/m6jHmaer1jFFqmufYK9/KkyCzctKNvUUnNm4nk8t6",
-    "data2": "Vm0wd2VHUXhUWGRPVldoVFltdHdUMVp0TVZOWFJsbDNXa1JTVjFadGVGWlZNakExVmpKS1IySkVUbGhoTVVwVVZtMTRZV015VGtWU2JIQk9VbXh3ZVZkV1kzaFRNVWw0V2toR1VtSklRazlWYWtwdlZWWmtWMXBFVWxwV01VcEpWbTEwVjFWdFNrZFhiR"
+    "data3": "lfv7lVCjip+n6JGoO+hmgoqXqE7e77zXfEzEBcz/E4h/TLLNIXOy+vXH2kwjE7OgWTj2j8Ong5Bl4DDOhxakLC7rj3TeKPyUmLD+XVPcGGWzYZn5pbSlGV4VfcKnAuCwSbkDpvzzpSwdPvC596X/m6jHmaer1jFFqmufYK9/KkyCzctKNvUUnNm4nk8t6itNIE9Hs7SzNd+9oZIffE3g6/+KT6Py9+HJecpa76JPyRWRSi1MllWOiMkEEAVRn828",
+    "data2": "Vm0wd2VHUXhUWGRPVldoVFltdHdUMVp0TVZOWFJsbDNXa1JTVjFadGVGWlZNakExVmpKS1IySkVUbGhoTVVwVVZtMTRZV015VGtWU2JIQk9VbXh3ZVZkV1kzaFRNVWw0V2toR1VtSklRazlWYWtwdlZWWmtWMXBFVWxwV01VcEpWbTEwVjFWdFNrZFhiR2hYWVd0d2RscFdXbUZqTVdSMFVteGtUbFp1UWxoV1JscFhWakpHU0ZadVJsSldSM001"
   }
 }
 
