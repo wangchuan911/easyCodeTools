@@ -41,11 +41,11 @@ public abstract class DeployVO {
 
   }
 
-  public void deployAllAfter(ZipInputStream zipInputStream) {
+  public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
 
   }
 
-  public void deployAllBefore(ZipInputStream zipInputStream) {
+  public void deployAllBefore(ZipInputStream zipInputStream) throws Throwable {
 
   }
 }

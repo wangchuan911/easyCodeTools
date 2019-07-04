@@ -86,6 +86,8 @@ public class FilesDeployImpl implements FilesDeploy {
 
   @Override
   public void dual(String zipFile, Handler<AsyncResult<String>> outputBodyHandler) {
+    final StringBuilder error = new StringBuilder();
+
     Future future = Future.future();
     final String KEY_ZIP_FILE_STRAM = "zipInputStream";
     future.setHandler(outputBodyHandler);
@@ -110,7 +112,11 @@ public class FilesDeployImpl implements FilesDeploy {
         ZipEntry zipEntry = null;
         ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
         deployVOS.entrySet().forEach(stringDeployVOEntry -> {
-          stringDeployVOEntry.getValue().deployAllBefore(zipInputStream);
+          try {
+            stringDeployVOEntry.getValue().deployAllBefore(zipInputStream);
+          } catch (Throwable e) {
+            error.append(e.toString()).append('\n');
+          }
         });
         do {
           try {
@@ -128,14 +134,20 @@ public class FilesDeployImpl implements FilesDeploy {
             }
           } catch (IOException e) {
             e.printStackTrace();
+            error.append(e.toString()).append('\n');
             continue;
           } catch (Throwable e) {
             e.printStackTrace();
+            error.append(e.toString()).append('\n');
             continue;
           }
         } while (zipEntry != null);
         deployVOS.entrySet().forEach(stringDeployVOEntry -> {
-          stringDeployVOEntry.getValue().deployAllAfter(zipInputStream);
+          try {
+            stringDeployVOEntry.getValue().deployAllAfter(zipInputStream);
+          } catch (Throwable e) {
+            error.append(e.toString()).append('\n');
+          }
         });
         asyncFlow.next();
       }).catchThen(asyncFlow -> {
@@ -144,7 +156,7 @@ public class FilesDeployImpl implements FilesDeploy {
       }).finalThen(flow -> {
         StreamUtils.close((ZipInputStream) flow.getParam().get(KEY_ZIP_FILE_STRAM));
         if (!flow.isError())
-          future.complete(null);
+          future.complete(error.toString());
       }).start();
     } catch (Throwable e) {
       future.fail(e);

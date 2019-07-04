@@ -27,7 +27,7 @@ public class JarDeployVO extends DeployVO {
       JarEntry jarEntry = null;
       jarOutputStream.putNextEntry(jarEntry = new JarEntry(zipName));
       StreamUtils.writeStream(zipInputStream, jarOutputStream);
-      String var=jarEntry.getName().replace("\\", "/");
+      String var = jarEntry.getName().replace("\\", "/");
       updateFile.add(var);
       System.out.println(var);
     } finally {
@@ -36,7 +36,7 @@ public class JarDeployVO extends DeployVO {
   }
 
   @Override
-  public void deployAllAfter(ZipInputStream zipInputStream) {
+  public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
     JarFile jfile = null;
     try {
       if (!file.exists()) return;
@@ -47,10 +47,10 @@ public class JarDeployVO extends DeployVO {
       while (entries.hasMoreElements()) {
         ZipEntry e = entries.nextElement();
         if (updateFile.contains(e.getName())) {
-          System.out.println(String.format("skip file :$s", e.getName()));
+          System.out.println(String.format("skip file :%s", e.getName()));
           continue;
         }
-        System.out.println("copy: " + e.getName());
+//        System.out.println("copy: " + e.getName());
         jarOutputStream.putNextEntry(e);
         if (!e.isDirectory()) {
           int bytesRead;
@@ -62,8 +62,12 @@ public class JarDeployVO extends DeployVO {
         }
         jarOutputStream.closeEntry();
       }
-    } catch (Exception e) {
-      e.printStackTrace();
+      String var = file.getName();
+      file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
+      newFile.renameTo(new File(var));
+    } catch (Throwable e) {
+      newFile.delete();
+      throw e;
     } finally {
       try {
         jfile.close();
@@ -81,7 +85,7 @@ public class JarDeployVO extends DeployVO {
   }
 
   @Override
-  public synchronized void deployAllBefore(ZipInputStream zipInputStream) {
+  public synchronized void deployAllBefore(ZipInputStream zipInputStream) throws Throwable {
     try {
       if (jarOutputStream == null) {
         String jarFile = this.getPath();
@@ -92,7 +96,7 @@ public class JarDeployVO extends DeployVO {
             file = new File(jarFile + (subfix = ".war"));
           }
           if (file.exists()) {
-            newFile = new File((jarFile + '-' + (Calendar.getInstance().getTimeInMillis()) + subfix));
+            newFile = new File((jarFile + '-' + (Calendar.getInstance().getTimeInMillis()) + "-tmp" + subfix));
             newFile.createNewFile();
             this.setPackageType(subfix);
           }

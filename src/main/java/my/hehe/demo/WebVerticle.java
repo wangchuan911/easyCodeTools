@@ -15,6 +15,7 @@ import io.vertx.ext.web.handler.TemplateHandler;
 import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.FilesDeploy;
+import org.apache.commons.lang.StringUtils;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.io.File;
@@ -137,9 +138,10 @@ public class WebVerticle extends AbstractVerticle {
         }
       });
     });
+
     router.post("/deployFile").handler(bodyHandler).blockingHandler(routingContext -> {
       if (!isServer) {
-        this.goResultHtml(engine, new JsonObject().put("msg", "fail!"), routingContext);
+        routingContext.fail(new Throwable("失败"));
         return;
       }
       Set<FileUpload> fileUploads = routingContext.fileUploads();
@@ -148,18 +150,24 @@ public class WebVerticle extends AbstractVerticle {
         String uploadFile = fileUpload.uploadedFileName();
         filesDeploy.dual(uploadFile, stringAsyncResult -> {
           atomicInteger.decrementAndGet();
-          if (stringAsyncResult.failed()) return;
+          StringBuilder result = new StringBuilder();
+          if (stringAsyncResult.failed()) {
+            result.append(stringAsyncResult.cause().getMessage()).append('\n');
+          } else {
+            result.append(uploadFile + "上传完成:" + stringAsyncResult.result()).append('\n');
+          }
           if (atomicInteger.get() == 0) {
             File f = new File(uploadFile);
             if (f.exists()) {
               System.out.println(f.getName());
               f.delete();
             }
-            this.goResultHtml(engine, new JsonObject().put("msg", "上传完成"), routingContext);
-            return;
+            this.goResultHtml(engine, new JsonObject().put("msg", result.toString()), routingContext);
           }
         });
       }
+    }).failureHandler(routingContext -> {
+      this.goResultHtml(engine, new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
     });
     int port = serverConfig.getJsonObject("port").getInteger("web");
     vertx.createHttpServer().requestHandler(router).listen(port, http -> {
