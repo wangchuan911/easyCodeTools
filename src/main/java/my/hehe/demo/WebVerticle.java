@@ -154,7 +154,7 @@ public class WebVerticle extends AbstractVerticle {
           if (stringAsyncResult.failed()) {
             result.append(stringAsyncResult.cause().getMessage()).append('\n');
           } else {
-            result.append(uploadFile + "上传完成:" + stringAsyncResult.result()).append('\n');
+            result.append(stringAsyncResult.result()).append('\n');
           }
           if (atomicInteger.get() == 0) {
             File f = new File(uploadFile);

@@ -28,7 +28,13 @@ public class JarDeployVO extends DeployVO {
       jarOutputStream.putNextEntry(jarEntry = new JarEntry(zipName));
       StreamUtils.writeStream(zipInputStream, jarOutputStream);
       String var = jarEntry.getName().replace("\\", "/");
-      updateFile.add(var);
+      if (var.equals(jarEntry.getName())) {
+        updateFile.add(var);
+        updateFile.add(jarEntry.getName().replace("/", "\\"));
+      } else {
+        updateFile.add(var);
+        updateFile.add(jarEntry.getName());
+      }
       System.out.println(var);
     } finally {
 

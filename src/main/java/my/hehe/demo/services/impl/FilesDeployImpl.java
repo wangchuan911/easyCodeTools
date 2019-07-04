@@ -90,7 +90,8 @@ public class FilesDeployImpl implements FilesDeploy {
   @Override
   public void dual(String zipFile, Handler<AsyncResult<String>> outputBodyHandler) {
     final StringBuilder error = new StringBuilder();
-
+    final StringBuilder success = new StringBuilder("成功：\n");
+    final Set<String> doing = new HashSet<>(deployVOS.size());
     Future future = Future.future();
     final String KEY_ZIP_FILE_STRAM = "zipInputStream";
 
@@ -152,6 +153,7 @@ public class FilesDeployImpl implements FilesDeploy {
             if (deployVOS.containsKey(pj)) {
               DeployVO deployVO = deployVOS.get(pj);
               deployVO.deploySingle(zipInputStream, zipEntry);
+              doing.add(pj);
             }
           } catch (IOException e) {
             e.printStackTrace();
@@ -170,6 +172,9 @@ public class FilesDeployImpl implements FilesDeploy {
             error.append(e.toString()).append('\n');
           }
         });
+        for (String str : doing) {
+          success.append(str).append('\n');
+        }
         asyncFlow.next();
       }).catchThen(asyncFlow -> {
         asyncFlow.getError().printStackTrace();
@@ -177,7 +182,7 @@ public class FilesDeployImpl implements FilesDeploy {
       }).finalThen(flow -> {
         StreamUtils.close((ZipInputStream) flow.getParam().get(KEY_ZIP_FILE_STRAM));
         if (!flow.isError())
-          future.complete(error.toString());
+          future.complete(success.toString() + '\n' + (error.length() == 0 ? "" : "错误：\n") + error.toString());
       }).start();
     } catch (Throwable e) {
       future.fail(e);
