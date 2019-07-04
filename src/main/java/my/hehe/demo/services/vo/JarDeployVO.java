@@ -62,26 +62,38 @@ public class JarDeployVO extends DeployVO {
         }
         jarOutputStream.closeEntry();
       }
-      String var = file.getName();
-      file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
-      newFile.renameTo(new File(var));
+
     } catch (Throwable e) {
+      e.printStackTrace();
       newFile.delete();
       throw e;
     } finally {
       try {
         jfile.close();
       } catch (Exception e) {
+        e.printStackTrace();
       }
+      try {
+        StreamUtils.close(jarOutputStream);
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        jarOutputStream = null;
+      }
+      try {
+        boolean isRename = false;
+        String var = file.getAbsolutePath();
+        isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
+        System.out.println(isRename);
+        isRename = newFile.renameTo(new File(var));
+        System.out.println(isRename);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      updateFile.clear();
+      newFile = null;
+      file = null;
     }
-    try {
-      StreamUtils.close(jarOutputStream);
-    } finally {
-      jarOutputStream = null;
-    }
-    updateFile.clear();
-    newFile = null;
-    file = null;
   }
 
   @Override

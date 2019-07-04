@@ -14,6 +14,7 @@ import my.hehe.demo.services.vo.ResourceVO;
 import java.io.*;
 import java.lang.reflect.Constructor;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -31,6 +32,8 @@ public class FilesDeployImpl implements FilesDeploy {
     ((FilesDeployImpl) filesDeploy).setConfig(option);
     return filesDeploy;
   }
+
+  public AtomicInteger onceUser = new AtomicInteger(0);
 
   Map<String, DeployVO> deployVOS = null;
   JsonObject deploys = null;
@@ -90,7 +93,25 @@ public class FilesDeployImpl implements FilesDeploy {
 
     Future future = Future.future();
     final String KEY_ZIP_FILE_STRAM = "zipInputStream";
-    future.setHandler(outputBodyHandler);
+
+    if (onceUser.get() > 0) {
+      future.setHandler(outputBodyHandler);
+      future.fail("人多");
+      return;
+    } else {
+      future.setHandler((Handler<AsyncResult<String>>) asyncResult -> {
+        onceUser.decrementAndGet();
+        Future f = Future.future();
+        f.setHandler(outputBodyHandler);
+        if (asyncResult.succeeded()) {
+          f.complete(asyncResult.result());
+        } else {
+          f.fail(asyncResult.cause());
+        }
+      });
+    }
+    onceUser.incrementAndGet();
+
     try {
       if (zipFile == null || zipFile.length() == 0) {
         future.fail(new NullPointerException());
