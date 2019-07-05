@@ -45,6 +45,13 @@ public class JarDeployVO extends DeployVO {
   @Override
   public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
     if (!this.getRunning()) {
+      try {
+        StreamUtils.close(jarOutputStream);
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        jarOutputStream = null;
+      }
       if (newFile != null) newFile.delete();
       return;
     }

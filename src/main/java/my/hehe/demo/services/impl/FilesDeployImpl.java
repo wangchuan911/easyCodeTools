@@ -130,8 +130,7 @@ public class FilesDeployImpl implements FilesDeploy {
             return;
           }
           flow.next();
-        }).then("写入文件", asyncFlow -> {
-        ZipEntry zipEntry = null;
+        }).then("写入前初始化", asyncFlow -> {
         ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
         deployVOS.entrySet().forEach(stringDeployVOEntry -> {
           try {
@@ -140,6 +139,10 @@ public class FilesDeployImpl implements FilesDeploy {
             error.append(e.toString()).append('\n');
           }
         });
+        asyncFlow.next();
+      }).then("写入文件", asyncFlow -> {
+        ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
+        ZipEntry zipEntry = null;
         do {
           try {
             zipEntry = zipInputStream.getNextEntry();
@@ -169,6 +172,12 @@ public class FilesDeployImpl implements FilesDeploy {
             continue;
           }
         } while (zipEntry != null);
+        asyncFlow.next();
+      }).catchThen(asyncFlow -> {
+        asyncFlow.getError().printStackTrace();
+        future.fail(asyncFlow.getError());
+      }).finalThen(flow -> {
+        ZipInputStream zipInputStream = (ZipInputStream) flow.getParam().get(KEY_ZIP_FILE_STRAM);
         deployVOS.entrySet().forEach(stringDeployVOEntry -> {
           try {
             stringDeployVOEntry.getValue().deployAllAfter(zipInputStream);
@@ -179,11 +188,7 @@ public class FilesDeployImpl implements FilesDeploy {
         for (String str : doing) {
           success.append(str).append('\n');
         }
-        asyncFlow.next();
-      }).catchThen(asyncFlow -> {
-        asyncFlow.getError().printStackTrace();
-        future.fail(asyncFlow.getError());
-      }).finalThen(flow -> {
+
         StreamUtils.close((ZipInputStream) flow.getParam().get(KEY_ZIP_FILE_STRAM));
         if (!flow.isError())
           future.complete(success.toString() + '\n' + (error.length() == 0 ? "" : "错误：\n") + error.toString());
