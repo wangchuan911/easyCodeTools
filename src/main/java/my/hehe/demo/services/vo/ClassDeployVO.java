@@ -19,18 +19,23 @@ public class ClassDeployVO extends DeployVO {
     FileOutputStream fileOutputStream = null;
     try {
       String zipName = zipEntry.getName();
-      String deployName = this.getPath() + zipName.substring(this.projectName.length());
+      String deployName = this.getPath() + zipName.substring(this.projectName.length()).replace("\\", "/");
       File file = new File(deployName);
-      System.out.println(zipName+"-->"+deployName);
+      System.out.println(zipName + "-->" + deployName);
       if (file.exists()) {
-       /* String bakName = null;
-        System.out.print(deployName + " exists ! backup to " + (bakName = deployName + "." + ((Calendar.getInstance().getTimeInMillis()) + ".bak")));
-        file.renameTo(new File(bakName));*/
-        file.delete();
+        String bakName = null;
+        bakName = deployName + "." + ((Calendar.getInstance().getTimeInMillis()) + ".bak");
+        bakName = bakName.replace("\\", "/");
+        System.out.println(String.format("%s exists ! backup to %s %s", deployName, bakName, file.renameTo(new File(bakName)) ? "success" : "fail"));
+
       }
       File parentFile = file.getParentFile();
       if (!parentFile.exists()) {
         parentFile.mkdirs();
+      }
+      file = new File(deployName);
+      if (file.exists()) {
+        file.delete();
       }
       file.createNewFile();
       fileOutputStream = new FileOutputStream(file);
