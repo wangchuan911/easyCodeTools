@@ -30,6 +30,10 @@ public class ApplicationVerticle extends AbstractVerticle {
       DeploymentOptions webDeploymentOptions = new DeploymentOptions()
         .setConfig(vertx.getOrCreateContext().config());
       vertx.deployVerticle(WebVerticle.class.getName(), webDeploymentOptions);
+
+      DeploymentOptions webDeploymentOptions1 = new DeploymentOptions()
+        .setConfig(vertx.getOrCreateContext().config());
+      vertx.deployVerticle(WebSocketVerticle.class.getName(), webDeploymentOptions1);
     };
     return runner;
   }

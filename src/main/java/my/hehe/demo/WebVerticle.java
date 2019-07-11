@@ -170,7 +170,11 @@ public class WebVerticle extends AbstractVerticle {
   }
 
   private void goResultHtml(TemplateEngine engine, JsonObject jsonObject, RoutingContext routingContext) {
-    engine.render(jsonObject, "templates/result.html", res -> {
+    goHtml(engine, jsonObject, routingContext, "result");
+  }
+
+  public static void goHtml(TemplateEngine engine, JsonObject jsonObject, RoutingContext routingContext, String page) {
+    engine.render(jsonObject, String.format("templates/%s.html", page), res -> {
       if (res.succeeded()) {
         routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
       } else {
