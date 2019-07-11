@@ -13,6 +13,7 @@ import io.vertx.ext.web.common.template.TemplateEngine;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.TemplateHandler;
 import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
+import my.hehe.demo.common.annotation.Verticle;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.FilesDeploy;
 import org.apache.commons.lang.StringUtils;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+@Verticle(worker = false)
 public class WebVerticle extends AbstractVerticle {
   Pattern p = Pattern.compile("(-){10,}");
   JsonObject serverConfig = null;

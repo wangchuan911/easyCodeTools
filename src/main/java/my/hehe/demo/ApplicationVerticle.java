@@ -4,8 +4,10 @@ import io.vertx.core.*;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.annotation.ReflectionUtils;
 import my.hehe.demo.common.annotation.UtilsInital;
+import my.hehe.demo.common.annotation.Verticle;
 import org.reflections.Reflections;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -19,7 +21,7 @@ public class ApplicationVerticle extends AbstractVerticle {
 
   private static Consumer<Vertx> deploy() {
     Consumer<Vertx> runner = vertx -> {
-      DeploymentOptions workerDeploymentOptions = new DeploymentOptions()
+      /*DeploymentOptions workerDeploymentOptions = new DeploymentOptions()
         .setWorker(true)
         // As worker verticles are never executed concurrently by Vert.x by more than one thread,
         // deploySingle multiple instances to avoid serializing requests.
@@ -33,7 +35,18 @@ public class ApplicationVerticle extends AbstractVerticle {
 
       DeploymentOptions webDeploymentOptions1 = new DeploymentOptions()
         .setConfig(vertx.getOrCreateContext().config());
-      vertx.deployVerticle(WebSocketVerticle.class.getName(), webDeploymentOptions1);
+      vertx.deployVerticle(WebSocketVerticle.class.getName(), webDeploymentOptions1);*/
+      Reflections reflections = ReflectionUtils.getReflection();
+      Set<Class<?>> classes = reflections.getTypesAnnotatedWith(Verticle.class);
+      for (Class<?> verticleClass : classes) {
+        DeploymentOptions options = new DeploymentOptions().setConfig(vertx.getOrCreateContext().config());
+        Verticle annotation = (Verticle) verticleClass.getAnnotation(Verticle.class);
+        if ((annotation).worker()) {
+          options.setWorker(annotation.worker());
+          options.setInstances(annotation.instances());
+        }
+        vertx.deployVerticle(verticleClass.getName(), options);
+      }
     };
     return runner;
   }

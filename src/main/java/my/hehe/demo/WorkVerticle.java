@@ -2,9 +2,11 @@ package my.hehe.demo;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import my.hehe.demo.common.annotation.Verticle;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.FilesDeploy;
 
+@Verticle(instances = 4, multiThreaded = false, worker = true)
 public class WorkVerticle extends AbstractVerticle {
 
   @Override
