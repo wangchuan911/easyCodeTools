@@ -24,9 +24,9 @@
     websocket.onclose = function (event) {
       console.log("websocket 连接关闭");
     };
-    setInterval(function () {
-      websocket.send("asd");
-    }, 2000, 2000)
+    setTimeout(function () {
+      websocket.send("[[${pj}]]");
+    }, 2000)
   };
 </script>
 <style type="text/css">
