@@ -12,4 +12,21 @@ public abstract class WebSocketRunner {
 
   public abstract void done(ServerWebSocket serverWebSocket);
 
+  static class STATE {
+    final static int RUNNING;
+    final static int START;
+    final static int FAIL;
+    final static int FINISH;
+
+    static {
+      int code = 0;
+      RUNNING = code++;
+      START = code++;
+      FAIL = code++;
+      FINISH = code++;
+    }
+
+  }
 }
+
+

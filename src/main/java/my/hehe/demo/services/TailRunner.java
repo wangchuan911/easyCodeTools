@@ -1,6 +1,5 @@
 package my.hehe.demo.services;
 
-import com.sun.istack.internal.NotNull;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.JsonObject;
@@ -19,14 +18,14 @@ public class TailRunner extends WebSocketRunner {
   public void start(String id, JsonObject config, ServerWebSocket serverWebSocket) {
     TailExcutor tailExcutor = null;
     for (TailExcutor excutor : tailExcutors) {
-      if (excutor.done || excutor.fail != null) {
+      if (excutor.STATE == STATE.FINISH || excutor.STATE == STATE.FAIL) {
         tailExcutors.remove(excutor);
         continue;
       }
       if (id.equals(excutor.id)) {
         tailExcutor = excutor;
         if (tailExcutor.isAlive()) {
-          System.out.println(String.format("create thread: %s", tailExcutor.toString()));
+          System.out.println(String.format("add socket to thread: %s", tailExcutor.toString()));
           tailExcutor.webSocketSet.add(serverWebSocket);
           return;
         }
@@ -61,12 +60,11 @@ class TailExcutor extends Thread {
   final Set<ServerWebSocket> webSocketSet;
   final String id;
   String path;
-  Throwable fail = null;
   BufferedReader bufferedReader;
   Process process = null;
-  boolean done = false;
+  int STATE = WebSocketRunner.STATE.START;
 
-  public TailExcutor(@NotNull String id) {
+  public TailExcutor(String id) {
     this.id = id.toString();
     this.webSocketSet = new ConcurrentHashSet<>();
   }
@@ -81,8 +79,9 @@ class TailExcutor extends Thread {
 
   @Override
   public void run() {
+    if (STATE == WebSocketRunner.STATE.FAIL || STATE == WebSocketRunner.STATE.FINISH || STATE == WebSocketRunner.STATE.RUNNING)
+      return;
     this.init();
-    if (fail != null) return;
     String line = null;
     try {
       while ((line =/* bufferedReader.readLine()*/"hehe") != null) {
@@ -108,6 +107,7 @@ class TailExcutor extends Thread {
   }
 
   private void init() {
+    this.STATE = WebSocketRunner.STATE.RUNNING;
     /*try {
       process = Runtime.getRuntime().exec(" tail -f " + path);
       bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -117,8 +117,9 @@ class TailExcutor extends Thread {
     }*/
   }
 
+
   public void done() {
-    done = true;
+    this.STATE = WebSocketRunner.STATE.FINISH;
     if (process != null) {
       try {
         process.destroy();
@@ -126,14 +127,12 @@ class TailExcutor extends Thread {
       }
     }
     webSocketSet.clear();
+    System.out.println(String.format("%s is ide ,release!", this.toString()));
   }
 
   private void fail(Throwable e) {
-    fail = e;
+    this.STATE = WebSocketRunner.STATE.FAIL;
     e.printStackTrace();
   }
 
-  public boolean isDone() {
-    return done;
-  }
 }

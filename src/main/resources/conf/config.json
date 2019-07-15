@@ -15,6 +15,12 @@
       ],
       "IomInterfaceGX": [
         "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService"
+      ],
+      "rm8\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\server_rm8\\target\\classes"
+      ],
+      "rm8": [
+        "D:\\Workspaces\\Eclipse-O\\server_rm8\\src\\main\\webapp"
       ]
     },
     "source": {
@@ -27,6 +33,10 @@
       ],
       "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService\\WEB-INF\\classes": [
         "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\src"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\server_rm8\\target\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\server_rm8\\src\\main\\resources",
+        "D:\\Workspaces\\Eclipse-O\\server_rm8\\src\\main\\java"
       ]
     },
     "sourceToBuild": {
@@ -46,14 +56,22 @@
   },
   "server": {
     "port": {
-      "web": 9099
+      "web": 9099,
+      "webSocket": 9098
     }
     /*"mode": null*/
   },
   "data": {
     "data1": "",
-    "data3": "lfv7lVCjip+n6JGoO+hmgoqXqE7e77zXfEzEBcz/E4h/TLLNIXOy+vXH2kwjE7OgWTj2j8Ong5Bl4DDOhxakLC7rj3TeKPyUmLD+XVPcGGWzYZn5pbSlGV4VfcKnAuCwSbkDpvzzpSwdPvC596X/m6jHmaer1jFFqmufYK9/KkyCzctKNvUUnNm4nk8t6itNIE9Hs7SzNd+9oZIffE3g6/+KT6Py9+HJecpa76JPyRWRSi1MllWOiMkEEAVRn828",
-    "data2": "Vm0wd2VHUXhUWGRPVldoVFltdHdUMVp0TVZOWFJsbDNXa1JTVjFadGVGWlZNakExVmpKS1IySkVUbGhoTVVwVVZtMTRZV015VGtWU2JIQk9VbXh3ZVZkV1kzaFRNVWw0V2toR1VtSklRazlWYWtwdlZWWmtWMXBFVWxwV01VcEpWbTEwVjFWdFNrZFhiR2hYWVd0d2RscFdXbUZqTVdSMFVteGtUbFp1UWxoV1JscFhWakpHU0ZadVJsSldSM001"
+    "data3": "lfv7lVCjip+n6JGoO+hmgoqXqE7e77zXfEzEBcz/E4h/TLLNIXOy+vXH2kwjE7OgWTj2j8Ong5Bl4DDOhxakLC7rj3TeKPyUmLD+XVPcGGWzYZn5pbSlGV4VfcKnAuCwSbkDpvzzpSwdPvC596X/m6jHmaer1jFFqmufYK9/KkyCzctKNvUUnNm4nk8t6itNIE9Hs7SzNd+9oZIffE3g6/+KT6Py9+",
+    "data2": "Vm0wd2VHUXhUWGRPVldoVFltdHdUMVp0TVZOWFJsbDNXa1JTVjFadGVGWlZNakExVmpKS1IySkVUbGhoTVVwVVZtMTRZV015VGtWU2JIQk9VbXh3ZVZkV1kzaFRNVWw0V2toR1VtSklRazlWYWtwdlZWWmtWMXBFVWxwV01VcEpWbTEwVjFWdFNrZFhiR2hYWVd0d2RscFdXbUZqTVdSMFV"
+  },
+  "webSocket": {
+    "tail": {
+      "ires": {
+        "path": "/rim/bea9/user_projects/domains/RimIres/bin/nohup.out"
+      }
+    }
   }
 }
 

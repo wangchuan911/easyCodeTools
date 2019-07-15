@@ -7,7 +7,11 @@
 <script>
   var init = function () {
     // 指定websocket路径
-    var websocket = new WebSocket('ws://[[${ip}]]:[[${port}]]/tail');
+    var host = window.location.host;
+    if (host.indexOf("http://") == 0 || host.indexOf("https://") == 0) {
+      host = host.replace(/https?:\/\//, "")
+    }
+    var websocket = new WebSocket('ws://' + host + '/tail');
     websocket.onmessage = function (event) {
       // 接收服务端的实时日志并添加到HTML页面中
       var container = document.getElementById("log-container")
@@ -25,9 +29,41 @@
       console.log("websocket 连接关闭");
     };
     setTimeout(function () {
-      websocket.send("[[${pj}]]");
+      websocket.send(getUrlParams("pj"));
     }, 2000)
   };
+
+  function getUrlParams(name) { // 不传name返回所有值，否则返回对应值
+    var url = window.location.search;
+    if (url.indexOf('?') == 1) {
+      return false;
+    }
+    url = url.substr(1);
+    url = url.split('&');
+    var name = name || '';
+    var nameres;
+    // 获取全部参数及其值
+    for (var i = 0; i < url.length; i++) {
+      var info = url[i].split('=');
+      var obj = {};
+      obj[info[0]] = decodeURI(info[1]);
+      url[i] = obj;
+    }
+    // 如果传入一个参数名称，就匹配其值
+    if (name) {
+      for (var i = 0; i < url.length; i++) {
+        for (var key in url[i]) {
+          if (key == name) {
+            nameres = url[i][key];
+          }
+        }
+      }
+    } else {
+      nameres = url;
+    }
+    // 返回结果
+    return nameres;
+  }
 </script>
 <style type="text/css">
   html {
