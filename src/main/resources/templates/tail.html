@@ -15,7 +15,10 @@
     websocket.onmessage = function (event) {
       // 接收服务端的实时日志并添加到HTML页面中
       var container = document.getElementById("log-container")
-      container.innerText += event.data;
+      var spanElm = document.createElement('SPAN');
+      spanElm.innerText = event.data
+      container.appendChild(spanElm);
+      container.appendChild(document.createElement('BR'));
       // 滚动条滚动到最低部
       container.scrollTop = container.scrollHeight;
 

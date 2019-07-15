@@ -8,6 +8,7 @@ import my.hehe.demo.common.StreamUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.*;
 
 public class TailRunner extends WebSocketRunner {
@@ -39,8 +40,9 @@ public class TailRunner extends WebSocketRunner {
     }
     if (tailExcutor == null) {
       tailExcutor = new TailExcutor(id);
+      tailExcutor.encode = (config.getString("encode", Charset.defaultCharset().toString()));
       tailExcutor.path = (config.getString("path"));
-//      if (!new File(tailExcutor.path).exists()) return;
+      if (!new File(tailExcutor.path).exists()) return;
     }
     try {
       tailExcutor.webSocketSet.add(serverWebSocket);
@@ -66,6 +68,7 @@ class TailExcutor extends Thread {
   final Set<ServerWebSocket> webSocketSet;
   final String id;
   String path;
+  String encode;
   BufferedReader bufferedReader;
   Process process = null;
   int STATE = WebSocketRunner.STATE.START;
@@ -88,7 +91,7 @@ class TailExcutor extends Thread {
         if (webSocketSet.size() > 0) {
           for (ServerWebSocket socket : webSocketSet) {
             try {
-              socket.writeTextMessage(line + "\n");
+              socket.writeTextMessage(line);
             } catch (Throwable e) {
               synchronized (webSocketSet) {
                 webSocketSet.remove(socket);
@@ -116,12 +119,11 @@ class TailExcutor extends Thread {
 //      command = "ping -t localhost";
       System.out.println(String.format("run command [%s]", command));
       process = Runtime.getRuntime().exec(command);
-      bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream(),this.encode));
     } catch (Throwable e) {
       this.fail(e);
     }
   }
-
 
   public void done() {
     this.STATE = WebSocketRunner.STATE.FINISH;

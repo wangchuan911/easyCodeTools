@@ -69,7 +69,8 @@
   "webSocket": {
     "tail": {
       "ires": {
-        "path": "/rim/bea9/user_projects/domains/RimIres/bin/nohup.out"
+        "path": "/rim/bea9/user_projects/domains/RimIres/bin/nohup.out",
+        "encode": "GB2312"
       }
     }
   }
