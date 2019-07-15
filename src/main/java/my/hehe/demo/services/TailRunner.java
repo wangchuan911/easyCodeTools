@@ -3,8 +3,10 @@ package my.hehe.demo.services;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.JsonObject;
+import my.hehe.demo.common.StreamUtils;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.util.*;
 
@@ -28,13 +30,17 @@ public class TailRunner extends WebSocketRunner {
           System.out.println(String.format("add socket to thread: %s", tailExcutor.toString()));
           tailExcutor.webSocketSet.add(serverWebSocket);
           return;
+        } else {
+          tailExcutors.remove(tailExcutor);
+          tailExcutor = null;
         }
         continue;
       }
     }
     if (tailExcutor == null) {
       tailExcutor = new TailExcutor(id);
-      tailExcutor.setPath(config.getString("path"));
+      tailExcutor.path = (config.getString("path"));
+//      if (!new File(tailExcutor.path).exists()) return;
     }
     try {
       tailExcutor.webSocketSet.add(serverWebSocket);
@@ -69,13 +75,6 @@ class TailExcutor extends Thread {
     this.webSocketSet = new ConcurrentHashSet<>();
   }
 
-  public String getPath() {
-    return path;
-  }
-
-  public void setPath(String path) {
-    this.path = path;
-  }
 
   @Override
   public void run() {
@@ -84,8 +83,8 @@ class TailExcutor extends Thread {
     this.init();
     String line = null;
     try {
-      while ((line =/* bufferedReader.readLine()*/"hehe") != null) {
-        Thread.sleep(2000);
+      while ((line = bufferedReader.readLine()) != null) {
+//        Thread.sleep(2000);
         if (webSocketSet.size() > 0) {
           for (ServerWebSocket socket : webSocketSet) {
             try {
@@ -103,18 +102,24 @@ class TailExcutor extends Thread {
       }
     } catch (Throwable e) {
       this.fail(e);
+    } finally {
+      if (bufferedReader != null) {
+        StreamUtils.close(bufferedReader);
+      }
     }
   }
 
   private void init() {
     this.STATE = WebSocketRunner.STATE.RUNNING;
-    /*try {
-      process = Runtime.getRuntime().exec(" tail -f " + path);
+    try {
+      String command = " tail -f " + path;
+//      command = "ping -t localhost";
+      System.out.println(String.format("run command [%s]", command));
+      process = Runtime.getRuntime().exec(command);
       bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      process.destroy();
     } catch (Throwable e) {
       this.fail(e);
-    }*/
+    }
   }
 
 
@@ -131,6 +136,13 @@ class TailExcutor extends Thread {
   }
 
   private void fail(Throwable e) {
+    if (process != null) {
+      try {
+        process.destroy();
+      } catch (Throwable e1) {
+      }
+    }
+    webSocketSet.clear();
     this.STATE = WebSocketRunner.STATE.FAIL;
     e.printStackTrace();
   }
