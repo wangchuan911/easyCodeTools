@@ -316,6 +316,10 @@ public class FilesCatcherImpl implements FilesCatcher {
         if (rootFile.isFile()) {
           System.out.println(rootFile.getAbsolutePath());
           simpleFiles.add(fileName);
+          File[] files = ResourceVO.findRelaFile(rootFile);
+          for (int i = 0; i < files.length; i++) {
+            simpleFiles.add(files[i].getAbsolutePath());
+          }
         } else if (rootFile.isDirectory()) {
           String[] files = rootFile.list(filenameFilter);
           getFileSub(simpleFiles, errorFile, rootFile, files);
@@ -342,6 +346,10 @@ public class FilesCatcherImpl implements FilesCatcher {
       if (subFile.isFile()) {
         System.out.println(rootFile.getAbsolutePath());
         simpleFiles.add(subFileName);
+        File[] subfiles = ResourceVO.findRelaFile(subFile);
+        for (int i1 = 0; i1 < subfiles.length; i1++) {
+          simpleFiles.add(subfiles[i1].getAbsolutePath());
+        }
       } else if (subFile.isDirectory()) {
         getFile(simpleFiles, errorFile, subFileName);
       } else {
