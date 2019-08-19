@@ -63,7 +63,11 @@ public class FilesCatcherImpl implements FilesCatcher {
     keys.forEach(s -> {
       JsonArray objects = build.getJsonArray(s);
       objects.forEach(o -> {
-        confBuild.put(o.toString(), s);
+        if(confBuild.containsKey(o.toString())){
+          confBuild.put(o.toString(),new JsonArray().add(confBuild.getValue(o.toString())).add(s));
+        }else {
+          confBuild.put(o.toString(), s);
+        }
       });
     });
     pathsBuild = confBuild.getMap().keySet();
@@ -73,7 +77,12 @@ public class FilesCatcherImpl implements FilesCatcher {
     keys.forEach(s -> {
       JsonArray objects = source.getJsonArray(s);
       objects.forEach(o -> {
-        confSourse.put(o.toString(), s);
+        if(!confSourse.containsKey(o.toString())){
+          confSourse.put(o.toString(), s);
+        }else{
+          confSourse.put(o.toString() ,new JsonArray().add(confSourse.getValue(o.toString())).add(s));
+        }
+
       });
     });
     pathsSourse = confSourse.getMap().keySet();
@@ -295,14 +304,29 @@ public class FilesCatcherImpl implements FilesCatcher {
       }
       System.out.print(fileName);
       System.out.print("->");
-      for (String source : pathsSourse) {
-        if (fileName.indexOf(source) == 0) {
-
-          fileName = fileName.replace(source, confSourse.getString(source));
-        }
-      }
       if (StringUtils.isNotEmpty(prefix))
         fileName = fileName.replace(prefix, sourceToBuild.get(prefix).toString());
+      for (String source : pathsSourse) {
+        if (fileName.indexOf(source) == 0) {
+          Object value=null;
+          if((value=confSourse.getValue(source)) instanceof JsonArray){
+            JsonArray jsonArray=(JsonArray)value;
+            List<File> fileList=null;
+            for (int i =0 ;i<jsonArray.size();i++){
+              String fileNameTmp=fileName.replace(source, jsonArray.getString(i));
+              if(fileList==null)fileList=new ArrayList<>(jsonArray.size());
+              File file=new File(fileNameTmp);
+              if(file.exists())
+                fileList.add(file);
+            }
+            fileList.sort((o1, o2) -> {
+              return (int)(o2.lastModified()-o1.lastModified());
+            });
+            fileName =fileList.get(0).getAbsolutePath();
+          }else
+            fileName = fileName.replace(source, confSourse.getString(source));
+        }
+      }
       System.out.println(fileName);
     }
     return fileName;
