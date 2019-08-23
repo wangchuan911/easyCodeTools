@@ -64,7 +64,12 @@ public class FilesCatcherImpl implements FilesCatcher {
       JsonArray objects = build.getJsonArray(s);
       objects.forEach(o -> {
         if(confBuild.containsKey(o.toString())){
-          confBuild.put(o.toString(),new JsonArray().add(confBuild.getValue(o.toString())).add(s));
+          Object obj =confBuild.getValue(o.toString());
+          if(obj instanceof JsonArray) {
+            confBuild.put(o.toString() ,((JsonArray)obj).add(s));
+          }else{
+            confBuild.put(o.toString(), new JsonArray().add(obj).add(s));
+          }
         }else {
           confBuild.put(o.toString(), s);
         }
@@ -80,7 +85,12 @@ public class FilesCatcherImpl implements FilesCatcher {
         if(!confSourse.containsKey(o.toString())){
           confSourse.put(o.toString(), s);
         }else{
-          confSourse.put(o.toString() ,new JsonArray().add(confSourse.getValue(o.toString())).add(s));
+          Object obj=confSourse.getValue(o.toString());
+          if(obj instanceof JsonArray){
+            confSourse.put(o.toString() ,((JsonArray)obj).add(s));
+          }else {
+            confSourse.put(o.toString() ,new JsonArray().add(obj).add(s));
+          }
         }
 
       });
