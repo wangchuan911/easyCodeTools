@@ -333,8 +333,11 @@ public class FilesCatcherImpl implements FilesCatcher {
               return (int)(o2.lastModified()-o1.lastModified());
             });
             fileName =fileList.get(0).getAbsolutePath();
-          }else
+            break;
+          }else {
             fileName = fileName.replace(source, confSourse.getString(source));
+            break;
+          }
         }
       }
       System.out.println(fileName);
@@ -348,7 +351,7 @@ public class FilesCatcherImpl implements FilesCatcher {
       File rootFile = new File(fileName);
       if (rootFile.exists() && rootFile.canRead()) {
         if (rootFile.isFile()) {
-          System.out.println(rootFile.getAbsolutePath());
+//          System.out.println(rootFile.getAbsolutePath());
           simpleFiles.add(fileName);
           File[] files = ResourceVO.findRelaFile(rootFile);
           for (int i = 0; i < (files==null?0:files.length); i++) {
@@ -378,7 +381,7 @@ public class FilesCatcherImpl implements FilesCatcher {
         continue;
       }
       if (subFile.isFile()) {
-        System.out.println(rootFile.getAbsolutePath());
+//        System.out.println(rootFile.getAbsolutePath());
         simpleFiles.add(subFileName);
         File[] subfiles = ResourceVO.findRelaFile(subFile);
         for (int i1 = 0; i1 < (subfiles==null?0:subfiles.length); i1++) {
