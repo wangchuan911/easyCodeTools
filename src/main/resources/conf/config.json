@@ -11,6 +11,7 @@
         "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\webapp"
       ],
       "IomInterfaceGX\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\out\\production\\IomInterfaceGX",
         "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService\\WEB-INF\\classes"
       ],
       "IomInterfaceGX": [
@@ -21,6 +22,19 @@
       ],
       "rm8": [
         "D:\\Workspaces\\Eclipse-O\\server_rm8\\src\\main\\webapp"
+      ],
+      "mobile\\WEB-INF\\classes": [
+        "D:\\Workspaces\\intellij\\mobileprojnew\\output\\production\\mobileprojnew"
+      ],
+      "IOMProjWeb\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\gx_IOMProjGbl\\out\\production\\gx_IOMProjGbl"
+      ],
+      "resweb\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\classes",
+        "D:\\Workspaces\\Eclipse-O\\resweb\\out\\production\\resweb"
+      ],
+      "eoms_IomInterfaceGX\\WEB-INF\\classes": [
+        "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\out\\production\\eoms_IomInterfaceGX"
       ]
     },
     "source": {
@@ -34,9 +48,27 @@
       "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService\\WEB-INF\\classes": [
         "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\src"
       ],
+      "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\out\\production\\IomInterfaceGX": [
+        "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\src"
+      ],
       "D:\\Workspaces\\Eclipse-O\\server_rm8\\target\\classes": [
         "D:\\Workspaces\\Eclipse-O\\server_rm8\\src\\main\\resources",
         "D:\\Workspaces\\Eclipse-O\\server_rm8\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\intellij\\mobileprojnew\\output\\production\\mobileprojnew": [
+        "D:\\Workspaces\\intellij\\mobileprojnew\\src"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\gx_IOMProjGbl\\out\\production\\gx_IOMProjGbl": [
+        "D:\\Workspaces\\Eclipse-O\\gx_IOMProjGbl\\src"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\resweb\\src"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\resweb\\out\\production\\resweb": [
+        "D:\\Workspaces\\Eclipse-O\\resweb\\src"
+      ],
+      "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\out\\production\\eoms_IomInterfaceGX": [
+        "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\src"
       ]
     },
     "sourceToBuild": {
@@ -58,8 +90,8 @@
     "port": {
       "web": 9099,
       "webSocket": 9098
-    }
-    /*"mode": null*/
+    },
+    "mode": "client"
   },
   "data": {
     "data1": "",

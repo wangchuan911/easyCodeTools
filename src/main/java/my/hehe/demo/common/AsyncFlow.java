@@ -2,10 +2,12 @@ package my.hehe.demo.common;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.annotation.UtilsInital;
 
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +34,7 @@ public class AsyncFlow {
   private Map busMap = null;
 
   //当前 future
-  private Future currentFuture = null;
+  private Promise currentFuture = null;
 
   private boolean isStarting = false;
   private boolean isComplete = false;
@@ -194,7 +196,33 @@ public class AsyncFlow {
     return isError;
   }
 
+  public void a(int a, int b,char c,Character cc,Integer aa){}
+
   public static void main(String[] args) {
+    for (Method a:AsyncFlow.class.getMethods()) {
+      if(a.getName().equals("a")) {
+        Class<?>[] aClass = a.getParameterTypes();
+        for (int i = 0; i < aClass.length; i++) {
+          System.out.println(aClass[i].getName());
+        }
+      }
+    }
+    System.out.println();
+ /*   List<Integer> integers = new ArrayList<>();
+    integers.add(1);
+    integers.add(3);
+    integers.add(2);
+    Collections.sort(integers, new Comparator<Integer>() {
+      public int compare(Integer o1, Integer o2) {
+        return (new Integer(o1)).compareTo(new Integer(o2));
+      }
+    });
+    System.out.println(integers);
+
+
+    System.out.println("aaa$12".matches("aaa"+"\\$[0-9]+"));*/
+
+
     /*String text = "<-------------------------------start---------------------------------->";
 
     Pattern p = Pattern.compile("\\<\\w+\\>.+\\<\\/\\w+\\>");
@@ -204,52 +232,57 @@ public class AsyncFlow {
     p = Pattern.compile("(-){10,}");
     List<String> a1 = Arrays.asList(p.split(text));
     System.out.println(a1);
-    if (true)
-      return;*/
-    AtomicInteger a = new AtomicInteger(0);
-    AtomicInteger b = new AtomicInteger(0);
-    AsyncFlow.initUtil(Vertx.vertx(), null);
-    try {
-      AsyncFlow f = AsyncFlow.getInstance()
-        .then("flow" + a.incrementAndGet(), flow -> {
-          System.out.println(b.incrementAndGet());
-          flow.next();
-        }).then("flow" + a.incrementAndGet(), flow -> {
+   */ if(true)
+    return;
+  AtomicInteger a = new AtomicInteger(0);
+  AtomicInteger b = new AtomicInteger(0);
+    AsyncFlow.initUtil(Vertx.vertx(),null);
+    try
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
+  {
+    AsyncFlow f = AsyncFlow.getInstance()
+      .then("flow" + a.incrementAndGet(), flow -> {
+        System.out.println(b.incrementAndGet());
+        flow.next();
+      }).then("flow" + a.incrementAndGet(), flow -> {
 
-        }).then("flow" + a.incrementAndGet(), flow -> {
-          System.out.println(b.incrementAndGet());
-          String aa = null;
+        System.out.println(b.incrementAndGet());
+        flow.next();
+
+      }).then("flow" + a.incrementAndGet(), flow -> {
+        System.out.println(b.incrementAndGet());
+        String aa = null;
 //          aa.length();
 //          flow.next();
-          flow.fail("error");
+        flow.fail("error");
 
-        }).then("flow" + a.incrementAndGet(), flow -> {
+      }).then("flow" + a.incrementAndGet(), flow -> {
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
+        System.out.println(b.incrementAndGet());
+        flow.next();
 
-        }).then("flow" + a.incrementAndGet(), flow -> {
+      }).then("flow" + a.incrementAndGet(), flow -> {
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
+        System.out.println(b.incrementAndGet());
+        flow.next();
 
-        }).then("flow" + a.incrementAndGet(), flow -> {
+      }).then("flow" + a.incrementAndGet(), flow -> {
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
+        System.out.println(b.incrementAndGet());
+        flow.next();
 
-        }).finalThen(asyncFlow -> {
-          System.out.println("end!");
-        });
-      f.start();
-    } catch (
-      Exception e) {
-      e.printStackTrace();
-    }
+      }).finalThen(asyncFlow -> {
+        System.out.println("end!");
+      });
+    f.start();
+  } catch(
+  Exception e)
+
+  {
+    e.printStackTrace();
   }
+
+}
 
   @UtilsInital
   static void initUtil(Vertx vertx, JsonObject jsonObject) {
