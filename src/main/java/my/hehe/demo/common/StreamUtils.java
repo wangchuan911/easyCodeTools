@@ -3,40 +3,10 @@ package my.hehe.demo.common;
 import java.io.*;
 
 public class StreamUtils {
-  public static void close(InputStream in) {
+  public static void close(Closeable closeable) {
     try {
-      if (in != null) {
-        in.close();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  public static void close(OutputStream out) {
-    try {
-      if (out != null) {
-        out.close();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  public static void close(Reader in) {
-    try {
-      if (in != null) {
-        in.close();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  public static void close(Writer out) {
-    try {
-      if (out != null) {
-        out.close();
+      if (closeable != null) {
+        closeable.close();
       }
     } catch (Exception e) {
       e.printStackTrace();

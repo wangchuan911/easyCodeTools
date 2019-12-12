@@ -47,7 +47,7 @@ public abstract class ResourceVO {
       case ".class": {
         if (file.isFile()) {
           String realName = fileName.substring(0, idx);
-          Pattern pattern = Pattern.compile(realName + "\\$[0-9]+");
+          Pattern pattern = Pattern.compile(realName + "\\$.+");
           files = file.getParentFile().listFiles((dir, name) -> {
             boolean flag = name.endsWith(".class");
             flag = flag && pattern.matcher(name.substring(0, name.lastIndexOf(".class"))).matches();
