@@ -125,13 +125,13 @@ public class FilesDeployImpl implements FilesDeploy {
           ZipInputStream zipInputStream = null;
           try {
             zipInputStream = new ZipInputStream(new FileInputStream(zip));
-            flow.getParam().put(KEY_ZIP_FILE_STRAM, zipInputStream);
+            flow.setParam(KEY_ZIP_FILE_STRAM, zipInputStream);
             flow.next();
           } catch (IOException e) {
             flow.fail("沒找到上传的压缩文件！");
           }
         }).then("写入前初始化", asyncFlow -> {
-        ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
+        ZipInputStream zipInputStream = asyncFlow.getParam(KEY_ZIP_FILE_STRAM, ZipInputStream.class);
         deployVOS.entrySet().forEach(stringDeployVOEntry -> {
           try {
             stringDeployVOEntry.getValue().deployAllBefore(zipInputStream);
@@ -141,7 +141,7 @@ public class FilesDeployImpl implements FilesDeploy {
         });
         asyncFlow.next();
       }).then("写入文件", asyncFlow -> {
-        ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
+        ZipInputStream zipInputStream = asyncFlow.getParam(KEY_ZIP_FILE_STRAM, ZipInputStream.class);
         ZipEntry zipEntry = null;
         do {
           try {

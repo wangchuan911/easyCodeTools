@@ -25,7 +25,7 @@ public class AsyncFlow {
   //finlly 执行器
   private Handler<AsyncFlow> finalHandler = null;
   //数据总线
-  private Map busData = new HashMap(4);
+  private Map<String, Object> busData = new HashMap(4);
 
   private int state = INITAIL;
 
@@ -260,7 +260,7 @@ public class AsyncFlow {
     private String name;
     private Handler<FlowUnit> handler;
     private Promise promise;
-    private Map param;
+    private Map<String, Object> param;
 
     private FlowUnit() {
     }
@@ -312,9 +312,12 @@ public class AsyncFlow {
       this.param = param;
     }
 
-    public synchronized Map getParam() {
-      if (this.param == null) this.param = new HashMap();
-      return this.param;
+    public synchronized <T> T getParam(String key, Class<T> t) {
+      return (T) this.param.get(key);
+    }
+
+    public void setParam(String key, Object value) {
+      this.param.put(key, value);
     }
   }
 }

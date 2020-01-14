@@ -160,21 +160,21 @@ public class FilesCatcherImpl implements FilesCatcher {
       try {
         File zipOfFile = this.careateZipFile();
         ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
-        flow.getParam().put(KEY_FIL_NAM, zipOfFile);
-        flow.getParam().put(KEY_ZIP_OS, zipOutputStream);
+        flow.setParam(KEY_FIL_NAM, zipOfFile);
+        flow.setParam(KEY_ZIP_OS, zipOutputStream);
       } catch (Exception e) {
         flow.fail(e);
       }
       flow.next();
     }).then("把一般文件压缩到zip文件中", flow -> {
       if (simpleFiles.size() > 0) {
-        ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
+        ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
         this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
       }
       flow.next();
     }).then("把特殊文件压缩到zip文件中", flow -> {
       if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
-        ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
+        ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
         AtomicInteger atomicInteger = new AtomicInteger(classSet.size());
         for (Method method : typeZipMethod) {
           try {
