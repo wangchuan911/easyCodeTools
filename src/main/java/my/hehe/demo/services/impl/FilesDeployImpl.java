@@ -58,7 +58,7 @@ public class FilesDeployImpl implements FilesDeploy {
 
     {
       Set<String> keys = deploys.getMap().keySet();
-      keys.forEach(key -> {
+      keys.stream().forEach(key -> {
         JsonObject jsonObject = deploys.getJsonObject(key);
         String name = jsonObject.getString("mode");
         String modeToClass = name.replaceFirst(name.charAt(0) + "", (name.charAt(0) + "").toUpperCase()) + DeployVO.class.getSimpleName();
@@ -118,7 +118,6 @@ public class FilesDeployImpl implements FilesDeploy {
       if (zipFile == null || zipFile.length() == 0) {
         promise.fail(new NullPointerException());
       }
-      final Set<Class<? extends ResourceVO>> classSet = new HashSet<>();
       AsyncFlow.getInstance()
         .then("解析zip文件", flow -> {
           File zip = new File(zipFile);
@@ -132,7 +131,7 @@ public class FilesDeployImpl implements FilesDeploy {
           }
         }).then("写入前初始化", asyncFlow -> {
         ZipInputStream zipInputStream = asyncFlow.getParam(KEY_ZIP_FILE_STRAM, ZipInputStream.class);
-        deployVOS.entrySet().forEach(stringDeployVOEntry -> {
+        deployVOS.entrySet().stream().forEach(stringDeployVOEntry -> {
           try {
             stringDeployVOEntry.getValue().deployAllBefore(zipInputStream);
           } catch (Throwable e) {
