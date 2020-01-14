@@ -55,7 +55,7 @@ public class AsyncFlow {
   public synchronized AsyncFlow then(String name, Handler<FlowUnit> handle) {
     this.undoAtStart();
     this.undoAtCompelete();
-    this.handlers.addLast(new FlowUnit().setOrder(handlers.size()).setHandler(handle));
+    this.handlers.addLast(new FlowUnit().setOrder(handlers.size()).setHandler(handle).setName(name));
     return this;
   }
 
