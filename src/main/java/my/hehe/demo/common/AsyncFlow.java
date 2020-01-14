@@ -95,9 +95,9 @@ public class AsyncFlow {
       this.flowUnitNow.setParam(busData);
       try {
         System.out.println(String.format(FORMATE, this.flowUnitNow.getOrder(), this.flowUnitNow.getName(), Thread.currentThread().toString()));
-        this.flowUnitNow.getHandler().handle(this.flowUnitNow);
+        this.flowUnitNow.handle();
       } catch (Throwable e) {
-        this.flowUnitNow.getPromise().fail(e);
+        this.flowUnitNow.fail(e);
       }
     }, async -> {
       if (!async.succeeded()) {
@@ -283,8 +283,8 @@ public class AsyncFlow {
       return this;
     }
 
-    Handler<FlowUnit> getHandler() {
-      return handler;
+    void handle() {
+      this.handler.handle(this);
     }
 
     FlowUnit setHandler(Handler<FlowUnit> handler) {
@@ -292,24 +292,20 @@ public class AsyncFlow {
       return this;
     }
 
-    Promise getPromise() {
-      return promise;
-    }
-
     void setPromise(Promise promise) {
       this.promise = promise;
     }
 
     public void next() {
-      this.getPromise().complete();
+      this.promise.complete();
     }
 
     public void fail(String s) {
-      this.getPromise().fail(s);
+      this.promise.fail(s);
     }
 
     public void fail(Throwable t) {
-      this.getPromise().fail(t);
+      this.promise.fail(t);
     }
 
     void setParam(Map param) {
