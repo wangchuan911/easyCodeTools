@@ -3,6 +3,7 @@ package my.hehe.demo.services.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.AsyncFlow;
 import my.hehe.demo.common.StreamUtils;
@@ -92,22 +93,22 @@ public class FilesDeployImpl implements FilesDeploy {
     final StringBuilder error = new StringBuilder();
     final StringBuilder success = new StringBuilder("成功：\n");
     final Set<String> doing = new HashSet<>(deployVOS.size());
-    Future future = Future.future();
+    Promise promise = Promise.promise();
     final String KEY_ZIP_FILE_STRAM = "zipInputStream";
 
     if (onceUser.get() > 0) {
-      future.setHandler(outputBodyHandler);
-      future.fail("人多");
+      promise.future().setHandler(outputBodyHandler);
+      promise.fail("人多");
       return;
     } else {
-      future.setHandler((Handler<AsyncResult<String>>) asyncResult -> {
+      promise.future().setHandler((Handler<AsyncResult<String>>) asyncResult -> {
         onceUser.decrementAndGet();
-        Future f = Future.future();
-        f.setHandler(outputBodyHandler);
+        Promise p = Promise.promise();
+        p.future().setHandler(outputBodyHandler);
         if (asyncResult.succeeded()) {
-          f.complete(asyncResult.result());
+          p.complete(asyncResult.result());
         } else {
-          f.fail(asyncResult.cause());
+          p.fail(asyncResult.cause());
         }
       });
     }
@@ -115,7 +116,7 @@ public class FilesDeployImpl implements FilesDeploy {
 
     try {
       if (zipFile == null || zipFile.length() == 0) {
-        future.fail(new NullPointerException());
+        promise.fail(new NullPointerException());
       }
       final Set<Class<? extends ResourceVO>> classSet = new HashSet<>();
       AsyncFlow.getInstance()
@@ -125,11 +126,10 @@ public class FilesDeployImpl implements FilesDeploy {
           try {
             zipInputStream = new ZipInputStream(new FileInputStream(zip));
             flow.getParam().put(KEY_ZIP_FILE_STRAM, zipInputStream);
+            flow.next();
           } catch (IOException e) {
             flow.fail("沒找到上传的压缩文件！");
-            return;
           }
-          flow.next();
         }).then("写入前初始化", asyncFlow -> {
         ZipInputStream zipInputStream = (ZipInputStream) asyncFlow.getParam().get(KEY_ZIP_FILE_STRAM);
         deployVOS.entrySet().forEach(stringDeployVOEntry -> {
@@ -162,10 +162,6 @@ public class FilesDeployImpl implements FilesDeploy {
               deployVO.deploySingle(zipInputStream, zipEntry);
               doing.add(pj);
             }
-          } catch (IOException e) {
-            e.printStackTrace();
-            error.append(e.toString()).append('\n');
-            continue;
           } catch (Throwable e) {
             e.printStackTrace();
             error.append(e.toString()).append('\n');
@@ -174,11 +170,11 @@ public class FilesDeployImpl implements FilesDeploy {
         } while (zipEntry != null);
         asyncFlow.next();
       }).catchThen(asyncFlow -> {
-        asyncFlow.getError().printStackTrace();
-        future.fail(asyncFlow.getError());
+        asyncFlow.printStackTrace();
+        promise.fail(asyncFlow);
       }).finalThen(flow -> {
         ZipInputStream zipInputStream = (ZipInputStream) flow.getParam().get(KEY_ZIP_FILE_STRAM);
-        deployVOS.entrySet().forEach(stringDeployVOEntry -> {
+        deployVOS.entrySet().stream().forEach(stringDeployVOEntry -> {
           try {
             stringDeployVOEntry.getValue().deployAllAfter(zipInputStream);
           } catch (Throwable e) {
@@ -191,10 +187,10 @@ public class FilesDeployImpl implements FilesDeploy {
 
         StreamUtils.close((ZipInputStream) flow.getParam().get(KEY_ZIP_FILE_STRAM));
         if (!flow.isError())
-          future.complete(success.toString() + '\n' + (error.length() == 0 ? "" : "错误：\n") + error.toString());
+          promise.complete(success.toString() + '\n' + (error.length() == 0 ? "" : "错误：\n") + error.toString());
       }).start();
     } catch (Throwable e) {
-      future.fail(e);
+      promise.fail(e);
     }
   }
 }

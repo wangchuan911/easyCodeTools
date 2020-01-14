@@ -3,7 +3,7 @@ package my.hehe.demo.services.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.impl.ConcurrentHashSet;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.*;
@@ -16,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import org.reflections.Reflections;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,29 +49,26 @@ public class FilesCatcherImpl implements FilesCatcher {
   }
 
   public synchronized void setConfig(JsonObject config) {
-
-
     if (confBuild == null && confSourse == null) {
       confBuild = new JsonObject();
       confSourse = new JsonObject();
     } else {
       return;
     }
-
     tmpFilePath = config.getString("tmpFilePath");
     JsonObject build = config.getJsonObject("build");
     Set<String> keys = build.getMap().keySet();
-    keys.forEach(s -> {
+    keys.stream().forEach(s -> {
       JsonArray objects = build.getJsonArray(s);
-      objects.forEach(o -> {
-        if(confBuild.containsKey(o.toString())){
-          Object obj =confBuild.getValue(o.toString());
-          if(obj instanceof JsonArray) {
-            confBuild.put(o.toString() ,((JsonArray)obj).add(s));
-          }else{
+      objects.stream().forEach(o -> {
+        if (confBuild.containsKey(o.toString())) {
+          Object obj = confBuild.getValue(o.toString());
+          if (obj instanceof JsonArray) {
+            confBuild.put(o.toString(), ((JsonArray) obj).add(s));
+          } else {
             confBuild.put(o.toString(), new JsonArray().add(obj).add(s));
           }
-        }else {
+        } else {
           confBuild.put(o.toString(), s);
         }
       });
@@ -79,17 +77,17 @@ public class FilesCatcherImpl implements FilesCatcher {
 
     JsonObject source = config.getJsonObject("source");
     keys = source.getMap().keySet();
-    keys.forEach(s -> {
+    keys.stream().forEach(s -> {
       JsonArray objects = source.getJsonArray(s);
-      objects.forEach(o -> {
-        if(!confSourse.containsKey(o.toString())){
+      objects.stream().forEach(o -> {
+        if (!confSourse.containsKey(o.toString())) {
           confSourse.put(o.toString(), s);
-        }else{
-          Object obj=confSourse.getValue(o.toString());
-          if(obj instanceof JsonArray){
-            confSourse.put(o.toString() ,((JsonArray)obj).add(s));
-          }else {
-            confSourse.put(o.toString() ,new JsonArray().add(obj).add(s));
+        } else {
+          Object obj = confSourse.getValue(o.toString());
+          if (obj instanceof JsonArray) {
+            confSourse.put(o.toString(), ((JsonArray) obj).add(s));
+          } else {
+            confSourse.put(o.toString(), new JsonArray().add(obj).add(s));
           }
         }
 
@@ -124,110 +122,41 @@ public class FilesCatcherImpl implements FilesCatcher {
 
   @Override
   public void dual(Set<String> fileList, Handler<AsyncResult<String>> outputBodyHandler) {
-    Future future = Future.future();
-    /*ZipOutputStream zipOutputStream = null;
-      try {
-      future.setHandler(outputBodyHandler);
-      if (fileList == null || fileList.size() == 0) {
-        future.fail(new NullPointerException());
-      }
-      final Set<String> simpleFiles = new ConcurrentHashSet<>();
-      final Set<ResourceVO> unSimpleFiles = new ConcurrentHashSet<>();
-      final Set<String> errorFile = new ConcurrentHashSet<>();
-      //遍历文本，找文件
-    fileList.forEach(fileName -> {
-        int type = this.getTextMode(fileName);
-        switch (type) {
-          case 0:
-            getFile(simpleFiles, errorFile, fileName);
-            break;
-          case 1:
-            try {
-              String[] var = fileName.split(":")[1].split("\\.");
-              unSimpleFiles.add(new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase()));
-            } catch (NullPointerException e) {
-              errorFile.add(fileName + " data is invail!");
-            }
-            break;
-        }
-
-      });
-      //创建zip文件
-      File zipOfFile = this.careateZipFile();
-      zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
-      //把一般文件压缩到zip文件中
-      if (simpleFiles.size() > 0) {
-        this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
-      }
-      if (unSimpleFiles.size() > 0) {
-        final ZipOutputStream zipOutputStream1 = zipOutputStream;
-        this.zipDataFile(zipOutputStream, unSimpleFiles, errorFile, aVoid -> {
-          //生成失败信息
-          try {
-            this.createFailFile(errorFile, zipOutputStream1);
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-          //关闭数据流
-          this.close(zipOutputStream1);
-
-          future.complete(zipOfFile.getAbsolutePath());
-        });
-      } else {
-        //生成失败信息
-        this.createFailFile(errorFile, zipOutputStream);
-
-        //关闭数据流
-        this.close(zipOutputStream);
-
-        future.complete(zipOfFile.getAbsolutePath());
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      //关闭数据流
-      this.close(zipOutputStream);
-      future.fail(e);
-    }*/
-
-    future.setHandler(outputBodyHandler);
+    Promise promise = Promise.promise();
+    promise.future().setHandler(outputBodyHandler);
     if (fileList == null || fileList.size() == 0) {
-      future.fail(new NullPointerException());
+      promise.fail(new NullPointerException());
     }
     final String KEY_ZIP_OS = "zipOutputStream";
     final String KEY_FIL_NAM = "zipOfFile";
-    final Set<String> simpleFiles = new ConcurrentHashSet<>();
-    final Set<ResourceVO> unSimpleFiles = new ConcurrentHashSet<>();
-    final Set<String> errorFile = new ConcurrentHashSet<>();
+    final Set<String> simpleFiles = new HashSet<>();
+    final Set<ResourceVO> unSimpleFiles = new HashSet<>();
+    final Set<String> errorFile = new HashSet<>();
     final Set<Class<? extends ResourceVO>> classSet = new HashSet<>();
     AsyncFlow.getInstance()
       .then("遍历文本，找文件", flow -> {
-        try {
-          fileList.forEach(fileName -> {
-            if (typeCheckMethod == null) return;
-            ResourceVO resourceVO = null;
-            for (Method method : typeCheckMethod) {
-              try {
-                resourceVO = (ResourceVO) method.invoke(null, fileName);
-                if (resourceVO != null) {
-                  unSimpleFiles.add(resourceVO);
-                  classSet.add(resourceVO.getClass());
-                  break;
-                }
-              } catch (Throwable e) {
-                e.printStackTrace();
-                errorFile.add(fileName + " " + e.getMessage());
+        fileList.stream().forEach(fileName -> {
+          if (typeCheckMethod == null) return;
+          ResourceVO resourceVO = null;
+          for (Method method : typeCheckMethod) {
+            try {
+              resourceVO = (ResourceVO) method.invoke(null, fileName);
+              if (resourceVO != null) {
+                unSimpleFiles.add(resourceVO);
+                classSet.add(resourceVO.getClass());
+                break;
               }
+            } catch (Throwable e) {
+              e.printStackTrace();
+              errorFile.add(fileName + " " + e.getMessage());
             }
-            if (resourceVO == null) {
-              getFile(simpleFiles, errorFile, fileName);
-            }
-          });
-        } catch (Exception e) {
-          flow.fail(e);
-        }
+          }
+          if (resourceVO == null) {
+            getFile(simpleFiles, errorFile, fileName);
+          }
+        });
         flow.next();
       }).then("创建zip文件", flow -> {
-
       try {
         File zipOfFile = this.careateZipFile();
         ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
@@ -238,51 +167,46 @@ public class FilesCatcherImpl implements FilesCatcher {
       }
       flow.next();
     }).then("把一般文件压缩到zip文件中", flow -> {
-      try {
-        if (simpleFiles.size() > 0) {
-          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
-          this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
-        }
-      } catch (Exception e) {
-        flow.fail(e);
+      if (simpleFiles.size() > 0) {
+        ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
+        this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
       }
       flow.next();
     }).then("把特殊文件压缩到zip文件中", flow -> {
-
-      try {
-        if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
-          ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
-          AtomicInteger atomicInteger = new AtomicInteger(classSet.size());
-          for (Method method : typeZipMethod) {
+      if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
+        ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
+        AtomicInteger atomicInteger = new AtomicInteger(classSet.size());
+        for (Method method : typeZipMethod) {
+          try {
             method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
               if (atomicInteger.decrementAndGet() == 0) {
                 flow.next();
               }
             });
+          } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            flow.fail(e);
+            return;
           }
-        } else {
-          flow.next();
         }
-      } catch (Exception e) {
-        flow.fail(e);
+      } else {
+        flow.next();
       }
     }).catchThen(asyncFlow -> {
-      asyncFlow.getError().printStackTrace();
-      future.fail(asyncFlow.getError());
+      asyncFlow.printStackTrace();
+      promise.fail(asyncFlow);
     }).finalThen(flow -> {
       ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
       File zipOfFile = (File) flow.getParam().get(KEY_FIL_NAM);
       //生成失败信息
       try {
-
         this.createFailFile(errorFile, zipOutputStream);
-      } catch (Exception e) {
+      } catch (IOException e) {
         e.printStackTrace();
       }
       //关闭数据流
       this.close(zipOutputStream);
       if (!flow.isError())
-        future.complete(zipOfFile.getAbsolutePath());
+        promise.complete(zipOfFile.getAbsolutePath());
     }).start();
   }
 
@@ -314,27 +238,22 @@ public class FilesCatcherImpl implements FilesCatcher {
       }
       System.out.print(fileName);
       System.out.print("->");
-      if (StringUtils.isNotEmpty(prefix))
-        fileName = fileName.replace(prefix, sourceToBuild.get(prefix).toString());
+      final String tmpFileName = StringUtils.isNotEmpty(prefix)
+        ? fileName.replace(prefix, sourceToBuild.get(prefix).toString())
+        : fileName;
       for (String source : pathsSourse) {
         if (fileName.indexOf(source) == 0) {
-          Object value=null;
-          if((value=confSourse.getValue(source)) instanceof JsonArray){
-            JsonArray jsonArray=(JsonArray)value;
-            List<File> fileList=null;
-            for (int i =0 ;i<jsonArray.size();i++){
-              String fileNameTmp=fileName.replace(source, jsonArray.getString(i));
-              if(fileList==null)fileList=new ArrayList<>(jsonArray.size());
-              File file=new File(fileNameTmp);
-              if(file.exists())
-                fileList.add(file);
-            }
-            fileList.sort((o1, o2) -> {
-              return (int)(o2.lastModified()-o1.lastModified());
-            });
-            fileName =fileList.get(0).getAbsolutePath();
+          Object value = null;
+          if ((value = confSourse.getValue(source)) instanceof JsonArray) {
+            JsonArray jsonArray = (JsonArray) value;
+            fileName = jsonArray.stream().map(o ->
+              new File(tmpFileName.replace(source, o.toString()))
+            ).filter(file -> file.exists())
+              .max((o1, o2) -> (o1.lastModified() > o2.lastModified() ? 1 : -1))
+              .get()
+              .getAbsolutePath();
             break;
-          }else {
+          } else {
             fileName = fileName.replace(source, confSourse.getString(source));
             break;
           }
@@ -354,7 +273,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 //          System.out.println(rootFile.getAbsolutePath());
           simpleFiles.add(fileName);
           File[] files = ResourceVO.findRelaFile(rootFile);
-          for (int i = 0; i < (files==null?0:files.length); i++) {
+          for (int i = 0; i < (files == null ? 0 : files.length); i++) {
             simpleFiles.add(files[i].getAbsolutePath());
           }
         } else if (rootFile.isDirectory()) {
@@ -384,7 +303,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 //        System.out.println(rootFile.getAbsolutePath());
         simpleFiles.add(subFileName);
         File[] subfiles = ResourceVO.findRelaFile(subFile);
-        for (int i1 = 0; i1 < (subfiles==null?0:subfiles.length); i1++) {
+        for (int i1 = 0; i1 < (subfiles == null ? 0 : subfiles.length); i1++) {
           simpleFiles.add(subfiles[i1].getAbsolutePath());
         }
       } else if (subFile.isDirectory()) {
@@ -396,22 +315,16 @@ public class FilesCatcherImpl implements FilesCatcher {
   }
 
   private void zipSimpleFile(ZipOutputStream zipOutputStream, Set<String> simpleFiles, Set<String> errorFile) {
-    try {
-      if (simpleFiles != null || errorFile != null) {
-
-        for (String file : simpleFiles) {
-          try {
-            zipProjectFile(file, zipOutputStream);
-          } catch (Exception e) {
-            e.printStackTrace();
-            simpleFiles.remove(file);
-            if (errorFile == null) errorFile = new HashSet<>();
-            errorFile.add(file + " copy fail:" + e.getMessage());
-          }
+    if (simpleFiles != null || errorFile != null) {
+      simpleFiles.stream().forEach(file -> {
+        try {
+          zipProjectFile(file, zipOutputStream);
+        } catch (Exception e) {
+          e.printStackTrace();
+          simpleFiles.remove(file);
+          errorFile.add(file + " copy fail:" + e.getMessage());
         }
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
+      });
     }
   }
 
@@ -473,7 +386,7 @@ public class FilesCatcherImpl implements FilesCatcher {
     StreamUtils.close(out);
   }
 
-  private void createFailFile(Set<String> fails, ZipOutputStream zipOutputStream) throws Exception {
+  private void createFailFile(Set<String> fails, ZipOutputStream zipOutputStream) throws IOException {
     if (fails.size() == 0) return;
     zipOutputStream.putNextEntry(new ZipEntry("result.txt"));
     for (String str : fails) {
