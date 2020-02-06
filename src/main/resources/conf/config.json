@@ -30,11 +30,14 @@
         "D:\\Workspaces\\Eclipse-O\\gx_IOMProjGbl\\out\\production\\gx_IOMProjGbl"
       ],
       "resweb\\WEB-INF\\classes": [
-        "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\classes",
-        "D:\\Workspaces\\Eclipse-O\\resweb\\out\\production\\resweb"
+        "D:\\Workspaces\\Eclipse-O\\resweb\\out\\production\\resweb",
+        "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\classes"
       ],
       "eoms_IomInterfaceGX\\WEB-INF\\classes": [
         "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\out\\production\\eoms_IomInterfaceGX"
+      ],
+      "resportal\\WEB-INF\\classes": [
+        "D:\\Workspaces\\intellij\\guangxidx\\target\\classes"
       ]
     },
     "source": {
@@ -69,6 +72,10 @@
       ],
       "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\out\\production\\eoms_IomInterfaceGX": [
         "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\src"
+      ],
+      "D:\\Workspaces\\intellij\\guangxidx\\target\\classes": [
+        "D:\\Workspaces\\intellij\\guangxidx\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\guangxidx\\src\\main\\resources"
       ]
     },
     "sourceToBuild": {

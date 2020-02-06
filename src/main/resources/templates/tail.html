@@ -5,6 +5,7 @@
   <title>tail log</title>
 </head>
 <script>
+  var lineNum = 0;
   var init = function () {
     // 指定websocket路径
     var host = window.location.host;
@@ -21,6 +22,10 @@
       container.appendChild(document.createElement('BR'));
       // 滚动条滚动到最低部
       container.scrollTop = container.scrollHeight;
+      lineNum++;
+      if(lineNum>=100){
+        container.removeChild(container.firstElementChild);
+      }
 
     };
     websocket.onopen = function (event) {
