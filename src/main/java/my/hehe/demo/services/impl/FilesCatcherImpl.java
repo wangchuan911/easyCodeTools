@@ -254,7 +254,7 @@ public class FilesCatcherImpl implements FilesCatcher {
               .getAbsolutePath();
             break;
           } else {
-            fileName = fileName.replace(source, confSourse.getString(source));
+            fileName = tmpFileName.replace(source, confSourse.getString(source));
             break;
           }
         }
