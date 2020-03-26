@@ -4,30 +4,34 @@ import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.StreamUtils;
 
 import java.io.*;
-import java.util.Calendar;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
+import java.nio.file.Files;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-public class JarDeployVO extends DeployVO {
-  JarOutputStream jarOutputStream = null;
+public class JarDeployVO extends ClassDeployVO {
+  //  JarOutputStream jarOutputStream = null;
   File newFile = null;
   File file = null;
-  Set<String> updateFile = new HashSet<>();
+  //  Set<String> updateFile = new HashSet<>();
+  final boolean isWindows = (System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0);
+  final String CMD = isWindows ?
+    "powershell.exe -Command \"cd '%s' ; & '%s" + File.separator + "bin" + File.separator + "jar.exe' -uf '%s' '%s'\""
+    : "cd %s && %s" + File.separator + "bin" + File.separator + "jar -uf %s %s";
 
   public synchronized void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
-    if (jarOutputStream == null) return;
+    super.deploySingle(zipInputStream, zipEntry);
+    /*if (jarOutputStream == null) return;
     this.setRunning(true);
     try {
       String zipName = zipEntry.getName().substring(this.projectName.length() + 1);
       JarEntry jarEntry = null;
       jarOutputStream.putNextEntry(jarEntry = new JarEntry(zipName));
       StreamUtils.writeStream(zipInputStream, jarOutputStream);
+      jarOutputStream.flush();
       String var = jarEntry.getName().replace("\\", "/");
       if (var.equals(jarEntry.getName())) {
         updateFile.add(var);
@@ -39,12 +43,39 @@ public class JarDeployVO extends DeployVO {
       System.out.println(var);
     } finally {
 
-    }
+    }*/
+    this.setRunning(true);
+    if (file == null || zipEntry.getName().indexOf(this.getProjectName()) != 0) return;
+    String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), zipEntry.getName().substring(this.getProjectName().length() + 1));
+    System.out.println();
+    Process p = Runtime.getRuntime().exec(command);
+    p.waitFor();
   }
 
   @Override
   public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
+    super.deployAllAfter(zipInputStream);
     if (!this.getRunning()) {
+      if (newFile != null) newFile.delete();
+      newFile = null;
+      file = null;
+      return;
+    }
+
+    if (newFile.exists()) {
+      boolean isRename = false;
+      String var = file.getAbsolutePath();
+      isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
+      System.out.println(isRename);
+      isRename = newFile.renameTo(new File(var));
+      System.out.println(isRename);
+    }
+    this.deleteFile(new File(this.getPath()));
+
+    newFile = null;
+    file = null;
+    this.setRunning(false);
+    /*if (!this.getRunning()) {
       try {
         StreamUtils.close(jarOutputStream);
       } catch (Exception e) {
@@ -69,14 +100,21 @@ public class JarDeployVO extends DeployVO {
           continue;
         }
 //        System.out.println("copy: " + e.getName());
-        jarOutputStream.putNextEntry(e);
+        ZipEntry zosEntry = new ZipEntry(e.getName());
+        zosEntry.setComment(e.getComment());
+        zosEntry.setExtra(e.getExtra());
+        zosEntry.setLastModifiedTime(e.getLastModifiedTime());
+        zosEntry.setTime(e.getTime());
+        jarOutputStream.putNextEntry(zosEntry);
         if (!e.isDirectory()) {
-          int bytesRead;
+          *//*int bytesRead;
           byte[] BUFFER = new byte[4096 * 1024];
           InputStream inputStream = jfile.getInputStream(e);
           while ((bytesRead = inputStream.read(BUFFER)) != -1) {
             jarOutputStream.write(BUFFER, 0, bytesRead);
-          }
+          }*//*
+          StreamUtils.writeStream(jfile.getInputStream(e), jarOutputStream);
+          jarOutputStream.flush();
         }
         jarOutputStream.closeEntry();
       }
@@ -99,24 +137,27 @@ public class JarDeployVO extends DeployVO {
         jarOutputStream = null;
       }
       try {
-        boolean isRename = false;
-        String var = file.getAbsolutePath();
-        isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
-        System.out.println(isRename);
-        isRename = newFile.renameTo(new File(var));
-        System.out.println(isRename);
+        if (newFile.exists()) {
+          boolean isRename = false;
+          String var = file.getAbsolutePath();
+          isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
+          System.out.println(isRename);
+          isRename = newFile.renameTo(new File(var));
+          System.out.println(isRename);
+        }
       } catch (Exception e) {
         e.printStackTrace();
       }
       updateFile.clear();
       newFile = null;
       file = null;
-    }
+    }*/
   }
 
   @Override
   public synchronized void deployAllBefore(ZipInputStream zipInputStream) throws Throwable {
-    try {
+    super.deployAllBefore(zipInputStream);
+    /*try {
       if (jarOutputStream == null) {
         String jarFile = this.getPath();
         {
@@ -138,6 +179,55 @@ public class JarDeployVO extends DeployVO {
       jarOutputStream = null;
     } finally {
 
+    }*/
+    try {
+      if (file == null) {
+        String jarFilePath = this.getPath();
+        String subfix;
+        file = (file = new File(jarFilePath + (subfix = ".jar"))).exists() ? file : new File(jarFilePath + (subfix = ".war"));
+        if (file.exists()) {
+          newFile = new File(jarFilePath + File.separator + this.getProjectName() + subfix);
+          if (!newFile.exists()) {
+            this.mkdir(newFile.getParentFile());
+            newFile.createNewFile();
+          }
+          StreamUtils.writeStreamAndClose(new FileInputStream(file), new FileOutputStream(newFile));
+          this.setPackageType(subfix);
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      file = null;
+      newFile = null;
+    } finally {
+
+    }
+  }
+
+  private String reNameTmp(String fileName, String SubFix) {
+    return fileName + '-' + (Calendar.getInstance().getTimeInMillis()) + "-tmp" + SubFix;
+  }
+
+  void deleteFile(File file) {
+    if (!file.exists()) {
+      return;
+    } else if (file.isFile()) {
+      file.delete();
+    } else if (file.isDirectory()) {
+      File[] files = file.listFiles();
+      for (int i = 0; i < files.length; i++) {
+        deleteFile(files[i]);
+      }
+      file.delete();
+    }
+  }
+
+  void mkdir(File file) {
+    if (file != null && !file.exists()) {
+      file.mkdirs();
+      this.mkdir(file.getParentFile());
+    } else {
+      return;
     }
   }
 }

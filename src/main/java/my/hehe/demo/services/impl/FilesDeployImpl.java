@@ -53,6 +53,7 @@ public class FilesDeployImpl implements FilesDeploy {
     }
 
     deploys = config.getJsonObject("deploy");
+    System.setProperty("jarBinPath", config.getString("jarBinPath"));
 
     Set<Class<? extends DeployVO>> subTypesOf = ReflectionUtils.getReflection().getSubTypesOf(DeployVO.class);
 
