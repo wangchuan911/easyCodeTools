@@ -33,11 +33,23 @@
         "D:\\Workspaces\\Eclipse-O\\resweb\\out\\production\\resweb",
         "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\classes"
       ],
+      "resweb\\WEB-INF\\jsp": [
+        "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\jsp"
+      ],
       "eoms_IomInterfaceGX\\WEB-INF\\classes": [
         "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\out\\production\\eoms_IomInterfaceGX"
       ],
       "resportal\\WEB-INF\\classes": [
         "D:\\Workspaces\\intellij\\guangxidx\\target\\classes"
+      ],
+      "isa-eoms-service-netfault\\BOOT-INF\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-netfault\\target\\classes"
+      ],
+      "isa-eoms-web-fotc\\META-INF\\resources": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-fotc\\src\\main\\webapp"
+      ],
+      "isa-eoms-service-fotc\\BOOT-INF\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\target\\classes"
       ]
     },
     "source": {
@@ -76,6 +88,14 @@
       "D:\\Workspaces\\intellij\\guangxidx\\target\\classes": [
         "D:\\Workspaces\\intellij\\guangxidx\\src\\main\\java",
         "D:\\Workspaces\\intellij\\guangxidx\\src\\main\\resources"
+      ],
+      "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-netfault\\target\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-netfault\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-netfault\\src\\main\\resources"
+      ],
+      "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\target\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\src\\main\\resources"
       ]
     },
     "sourceToBuild": {
@@ -89,16 +109,29 @@
       "resservice": {
         "path": "D:\\Workspaces\\Eclipse-O\\resservice\\target\\resservice-8.0-RELEASE",
         "mode": "jar"
+      },
+      "isa-eoms-service-netfault": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-netfault\\target\\isa-eoms-service-netfault",
+        "mode": "jar"
+      },
+      "isa-eoms-web-fotc": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-fotc\\target\\isa-eoms-web-fotc",
+        "mode": "jar"
+      },
+      "isa-eoms-service-fotc": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\target\\isa-eoms-service-fotc",
+        "mode": "jar"
       }
     },
-    "tmpFilePath": "D:\\zip"
+    "tmpFilePath": "D:\\zip",
+    "jarBinPath":"D:\\Programs\\Android\\Android Studio\\jre"
   },
   "server": {
     "port": {
       "web": 9099,
       "webSocket": 9098
-    },
-    "mode": "client"
+    }/*,
+    "mode": "client"*/
   },
   "data": {
     "data1": "",
