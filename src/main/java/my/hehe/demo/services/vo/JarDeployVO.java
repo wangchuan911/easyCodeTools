@@ -17,6 +17,7 @@ public class JarDeployVO extends ClassDeployVO {
   File newFile = null;
   File file = null;
   //  Set<String> updateFile = new HashSet<>();
+  Map<String, Set<String>> setMap = new HashMap<>();
   final boolean isWindows = (System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0);
   final String CMD = isWindows ?
     "powershell.exe -Command \"cd '%s' ; & '%s" + File.separator + "bin" + File.separator + "jar.exe' -uf '%s' '%s'\""
@@ -47,7 +48,7 @@ public class JarDeployVO extends ClassDeployVO {
     this.setRunning(true);
     if (file == null || zipEntry.getName().indexOf(this.getProjectName()) != 0) return;
     String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), zipEntry.getName().substring(this.getProjectName().length() + 1));
-    System.out.println();
+    System.out.println(command);
     Process p = Runtime.getRuntime().exec(command);
     p.waitFor();
   }

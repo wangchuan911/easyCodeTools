@@ -63,8 +63,25 @@ public class FilesDeployImpl implements FilesDeploy {
         JsonObject jsonObject = deploys.getJsonObject(key);
         String name = jsonObject.getString("mode");
         String modeToClass = name.replaceFirst(name.charAt(0) + "", (name.charAt(0) + "").toUpperCase()) + DeployVO.class.getSimpleName();
-        System.out.println(String.format("regist Deploy class [ %s ]", modeToClass));
-        for (Class aClass : subTypesOf) {
+        try {
+          Constructor constructor = subTypesOf
+            .stream()
+            .filter(aClass -> modeToClass.equals(aClass.getSimpleName()))
+            .findFirst().get()
+            .getConstructor(null);
+          DeployVO deployVO = (DeployVO) constructor.newInstance(null);
+          deployVO.setPackageType(name);
+          deployVO.setPath(jsonObject.getString("path"));
+          deployVO.setProjectName(key);
+          deployVO.setConfiguration(jsonObject);
+          synchronized (deployVOS) {
+            deployVOS.put(key, deployVO);
+          }
+          System.out.println(String.format("regist Deploy class [ %s ][ %s ]", modeToClass, deployVO.getProjectName()));
+        } catch (Throwable e) {
+          e.printStackTrace();
+        }
+        /*for (Class aClass : subTypesOf) {
           if (modeToClass.equals(aClass.getSimpleName())) {
             try {
               Constructor constructor = aClass.getConstructor(null);
@@ -82,7 +99,7 @@ public class FilesDeployImpl implements FilesDeploy {
               break;
             }
           }
-        }
+        }*/
       });
     }
 
