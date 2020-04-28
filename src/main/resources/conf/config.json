@@ -50,6 +50,12 @@
       ],
       "isa-eoms-service-fotc\\BOOT-INF\\classes": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\target\\classes"
+      ],
+      "isa-eoms-service-plan\\BOOT-INF\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\target\\classes"
+      ],
+      "isa-eoms-web-plan\\META-INF\\resources": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-plan\\src\\main\\webapp"
       ]
     },
     "source": {
@@ -96,6 +102,10 @@
       "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\target\\classes": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\src\\main\\java",
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\src\\main\\resources"
+      ],
+      "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\target\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\src\\main\\resources"
       ]
     },
     "sourceToBuild": {
@@ -121,10 +131,18 @@
       "isa-eoms-service-fotc": {
         "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-fotc\\target\\isa-eoms-service-fotc",
         "mode": "jar"
+      },
+      "isa-eoms-service-plan": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\target\\isa-eoms-service-plan",
+        "mode": "jar"
+      },
+      "isa-eoms-web-plan": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-plan\\target\\isa-eoms-web-plan",
+        "mode": "jar"
       }
     },
     "tmpFilePath": "D:\\zip",
-    "jarBinPath":"D:\\Programs\\Android\\Android Studio\\jre"
+    "jarBinPath": "D:\\Programs\\Android\\Android Studio\\jre"
   },
   "server": {
     "port": {

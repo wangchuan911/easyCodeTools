@@ -13,18 +13,20 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class JarDeployVO extends ClassDeployVO {
-  //  JarOutputStream jarOutputStream = null;
-  File newFile = null;
-  File file = null;
-  //  Set<String> updateFile = new HashSet<>();
-  Map<String, Set<String>> setMap = new HashMap<>();
-  final boolean isWindows = (System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0);
-  final String CMD = isWindows ?
-    "powershell.exe -Command \"cd '%s' ; & '%s" + File.separator + "bin" + File.separator + "jar.exe' -uf '%s' '%s'\""
-    : "cd %s && %s" + File.separator + "bin" + File.separator + "jar -uf %s %s";
+	//  JarOutputStream jarOutputStream = null;
+	File newFile = null;
+	File file = null;
+	//  Set<String> updateFile = new HashSet<>();
+	Map<String, Set<String>> setMap = new HashMap<>();
+	final boolean isWindows = (System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0);
+	final String CMD = isWindows ?
+			"powershell.exe -Command \"cd '%s' ; & '%s" + File.separator + "bin" + File.separator + "jar.exe' -uf '%s' '%s'\""
+			: "cd %s && %s" + File.separator + "bin" + File.separator + "jar -uf %s %s";
 
-  public synchronized void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
-    super.deploySingle(zipInputStream, zipEntry);
+	Set<String> updateDir = new HashSet<>();
+
+	public synchronized void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
+		super.deploySingle(zipInputStream, zipEntry);
     /*if (jarOutputStream == null) return;
     this.setRunning(true);
     try {
@@ -45,37 +47,54 @@ public class JarDeployVO extends ClassDeployVO {
     } finally {
 
     }*/
-    this.setRunning(true);
-    if (file == null || zipEntry.getName().indexOf(this.getProjectName()) != 0) return;
-    String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), zipEntry.getName().substring(this.getProjectName().length() + 1));
+		this.setRunning(true);
+		if (file == null || zipEntry.getName().indexOf(this.getProjectName()) != 0) return;
+    /*String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), zipEntry.getName().substring(this.getProjectName().length() + 1));
     System.out.println(command);
     Process p = Runtime.getRuntime().exec(command);
-    p.waitFor();
-  }
+    p.waitFor();*/
+		String dir = zipEntry.getName().substring(this.getProjectName().length() + 1);
+		dir = dir.substring(0, dir.indexOf(File.separator));
+		if (!updateDir.contains(dir)) {
+			updateDir.add(dir);
+		}
+	}
 
-  @Override
-  public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
-    super.deployAllAfter(zipInputStream);
-    if (!this.getRunning()) {
-      if (newFile != null) newFile.delete();
-      newFile = null;
-      file = null;
-      return;
-    }
+	@Override
+	public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
 
-    if (newFile.exists()) {
-      boolean isRename = false;
-      String var = file.getAbsolutePath();
-      isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
-      System.out.println(isRename);
-      isRename = newFile.renameTo(new File(var));
-      System.out.println(isRename);
-    }
-    this.deleteFile(new File(this.getPath()));
+		updateDir.stream().forEach(s -> {
+			String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), s);
+			System.out.println(command);
+			try {
+				Runtime.getRuntime().exec(command).waitFor();
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
+		});
+		updateDir.clear();
 
-    newFile = null;
-    file = null;
-    this.setRunning(false);
+		super.deployAllAfter(zipInputStream);
+		if (!this.getRunning()) {
+			if (newFile != null) newFile.delete();
+			newFile = null;
+			file = null;
+			return;
+		}
+
+		if (newFile.exists()) {
+			boolean isRename = false;
+			String var = file.getAbsolutePath();
+			isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
+			System.out.println(isRename);
+			isRename = newFile.renameTo(new File(var));
+			System.out.println(isRename);
+		}
+		this.deleteFile(new File(this.getPath()));
+
+		newFile = null;
+		file = null;
+		this.setRunning(false);
     /*if (!this.getRunning()) {
       try {
         StreamUtils.close(jarOutputStream);
@@ -153,11 +172,11 @@ public class JarDeployVO extends ClassDeployVO {
       newFile = null;
       file = null;
     }*/
-  }
+	}
 
-  @Override
-  public synchronized void deployAllBefore(ZipInputStream zipInputStream) throws Throwable {
-    super.deployAllBefore(zipInputStream);
+	@Override
+	public synchronized void deployAllBefore(ZipInputStream zipInputStream) throws Throwable {
+		super.deployAllBefore(zipInputStream);
     /*try {
       if (jarOutputStream == null) {
         String jarFile = this.getPath();
@@ -181,54 +200,54 @@ public class JarDeployVO extends ClassDeployVO {
     } finally {
 
     }*/
-    try {
-      if (file == null) {
-        String jarFilePath = this.getPath();
-        String subfix;
-        file = (file = new File(jarFilePath + (subfix = ".jar"))).exists() ? file : new File(jarFilePath + (subfix = ".war"));
-        if (file.exists()) {
-          newFile = new File(jarFilePath + File.separator + this.getProjectName() + subfix);
-          if (!newFile.exists()) {
-            this.mkdir(newFile.getParentFile());
-            newFile.createNewFile();
-          }
-          StreamUtils.writeStreamAndClose(new FileInputStream(file), new FileOutputStream(newFile));
-          this.setPackageType(subfix);
-        }
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      file = null;
-      newFile = null;
-    } finally {
+		try {
+			if (file == null) {
+				String jarFilePath = this.getPath();
+				String subfix;
+				file = (file = new File(jarFilePath + (subfix = ".jar"))).exists() ? file : new File(jarFilePath + (subfix = ".war"));
+				if (file.exists()) {
+					newFile = new File(jarFilePath + File.separator + this.getProjectName() + subfix);
+					if (!newFile.exists()) {
+						this.mkdir(newFile.getParentFile());
+						newFile.createNewFile();
+					}
+					StreamUtils.writeStreamAndClose(new FileInputStream(file), new FileOutputStream(newFile));
+					this.setPackageType(subfix);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			file = null;
+			newFile = null;
+		} finally {
 
-    }
-  }
+		}
+	}
 
-  private String reNameTmp(String fileName, String SubFix) {
-    return fileName + '-' + (Calendar.getInstance().getTimeInMillis()) + "-tmp" + SubFix;
-  }
+	private String reNameTmp(String fileName, String SubFix) {
+		return fileName + '-' + (Calendar.getInstance().getTimeInMillis()) + "-tmp" + SubFix;
+	}
 
-  void deleteFile(File file) {
-    if (!file.exists()) {
-      return;
-    } else if (file.isFile()) {
-      file.delete();
-    } else if (file.isDirectory()) {
-      File[] files = file.listFiles();
-      for (int i = 0; i < files.length; i++) {
-        deleteFile(files[i]);
-      }
-      file.delete();
-    }
-  }
+	void deleteFile(File file) {
+		if (!file.exists()) {
+			return;
+		} else if (file.isFile()) {
+			file.delete();
+		} else if (file.isDirectory()) {
+			File[] files = file.listFiles();
+			for (int i = 0; i < files.length; i++) {
+				deleteFile(files[i]);
+			}
+			file.delete();
+		}
+	}
 
-  void mkdir(File file) {
-    if (file != null && !file.exists()) {
-      file.mkdirs();
-      this.mkdir(file.getParentFile());
-    } else {
-      return;
-    }
-  }
+	void mkdir(File file) {
+		if (file != null && !file.exists()) {
+			file.mkdirs();
+			this.mkdir(file.getParentFile());
+		} else {
+			return;
+		}
+	}
 }
