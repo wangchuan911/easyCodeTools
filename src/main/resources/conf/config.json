@@ -5,7 +5,9 @@
         "D:\\Workspaces\\Eclipse-O\\resservice\\target\\classes"
       ],
       "ires": [
-        "D:\\Workspaces\\Eclipse-O\\03 server\\out\\production\\03 server"
+        "D:\\Workspaces\\Eclipse-O\\03 server\\out\\production\\03 server",
+        "D:\\Workspaces\\Eclipse-O\\03 server\\web\\WEB-INF\\classes",
+        "D:\\Workspaces\\intellij\\RimIres\\web\\WEB-INF\\classes\\production\\RimIres"
       ],
       "resservice": [
         "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\webapp"
@@ -45,6 +47,9 @@
       "isa-eoms-service-netfault\\BOOT-INF\\classes": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-netfault\\target\\classes"
       ],
+      "isa-eoms-web-netfault\\META-INF\\resources": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-netfault\\src\\main\\webapp"
+      ],
       "isa-eoms-web-fotc\\META-INF\\resources": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-fotc\\src\\main\\webapp"
       ],
@@ -56,6 +61,9 @@
       ],
       "isa-eoms-web-plan\\META-INF\\resources": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-plan\\src\\main\\webapp"
+      ],
+      "fwbz-interface\\classes": [
+        "D:\\Workspaces\\intellij\\oss\\wfm_ms\\fwbzinterface\\target\\classes"
       ]
     },
     "source": {
@@ -65,6 +73,12 @@
       ],
       "D:\\Workspaces\\Eclipse-O\\03 server\\out\\production\\03 server": [
         "D:\\Workspaces\\Eclipse-O\\03 server\\src"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\03 server\\web\\WEB-INF\\classes": [
+        "D:\\Workspaces\\Eclipse-O\\03 server\\src"
+      ],
+      "D:\\Workspaces\\intellij\\RimIres\\web\\WEB-INF\\classes\\production\\RimIres": [
+        "D:\\Workspaces\\intellij\\RimIres\\src"
       ],
       "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\WfmWebService\\WEB-INF\\classes": [
         "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\src"
@@ -106,6 +120,9 @@
       "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\target\\classes": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\src\\main\\java",
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\src\\main\\resources"
+      ],
+      "D:\\Workspaces\\intellij\\oss\\wfm_ms\\fwbzinterface\\target\\classes": [
+        "D:\\Workspaces\\intellij\\oss\\wfm_ms\\fwbzinterface\\src\\main\\java"
       ]
     },
     "sourceToBuild": {
@@ -122,6 +139,10 @@
       },
       "isa-eoms-service-netfault": {
         "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-netfault\\target\\isa-eoms-service-netfault",
+        "mode": "jar"
+      },
+      "isa-eoms-web-netfault": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-netfault\\target\\isa-eoms-web-netfault",
         "mode": "jar"
       },
       "isa-eoms-web-fotc": {
