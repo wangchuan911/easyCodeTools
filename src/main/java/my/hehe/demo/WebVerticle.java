@@ -16,12 +16,14 @@ import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
 import my.hehe.demo.common.annotation.Verticle;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.FilesDeploy;
+import my.hehe.demo.services.WebServiceClient;
 import org.apache.commons.lang.StringUtils;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -159,6 +161,24 @@ public class WebVerticle extends AbstractVerticle {
       }
     }).failureHandler(routingContext -> {
       this.goResultHtml(engine, new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
+    });
+
+    router.post("/wsdl").handler(bodyHandler).handler(routingContext -> {
+      MultiMap map=routingContext.request().formAttributes();
+	    String string = map.get("params");
+	    try {
+		    string=URLDecoder.decode(string, "utf-8");
+	    }catch (Throwable e){
+	    	e.printStackTrace();
+	    }
+	    String[] list = string.split("\r\n");
+	    WebServiceClient.KeyValue[] kvs=Arrays.stream(list).map(s -> {
+	    	int i=s.indexOf(":");
+	    	return WebServiceClient.keyValue(s.substring(0,i),s.substring(i+1));
+	    }).toArray(WebServiceClient.KeyValue[]::new);
+	    routingContext.response().end(WebServiceClient.callRpc(map.get("wsdl"),map.get("qName"),map.get("method"),kvs).toString());;
+    }).failureHandler(routingContext -> {
+	    this.goResultHtml(engine, new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
     });
     int port = serverConfig.getJsonObject("port").getInteger("web");
     vertx.createHttpServer().requestHandler(router).listen(port, http -> {
