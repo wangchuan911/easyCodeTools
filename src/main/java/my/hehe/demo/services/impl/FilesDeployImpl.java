@@ -115,14 +115,14 @@ public class FilesDeployImpl implements FilesDeploy {
 		final String KEY_ZIP_FILE_STRAM = "zipInputStream";
 
 		if (onceUser.get() > 0) {
-			promise.future().setHandler(outputBodyHandler);
+			promise.future().onComplete(outputBodyHandler);
 			promise.fail("人多");
 			return;
 		} else {
-			promise.future().setHandler((Handler<AsyncResult<String>>) asyncResult -> {
+			promise.future().onComplete((Handler<AsyncResult<String>>) asyncResult -> {
 				onceUser.decrementAndGet();
 				Promise p = Promise.promise();
-				p.future().setHandler(outputBodyHandler);
+				p.future().onComplete(outputBodyHandler);
 				if (asyncResult.succeeded()) {
 					p.complete(asyncResult.result());
 				} else {

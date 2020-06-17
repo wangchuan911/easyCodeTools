@@ -1,36 +1,17 @@
 package my.hehe.demo;
 
-import io.netty.util.internal.StringUtil;
 import io.vertx.core.*;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.http.ServerWebSocket;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.common.template.TemplateEngine;
-import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.handler.TemplateHandler;
-import io.vertx.ext.web.sstore.SessionStore;
-import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
 import my.hehe.demo.common.annotation.Verticle;
-import my.hehe.demo.services.FilesCatcher;
-import my.hehe.demo.services.FilesDeploy;
+
 import my.hehe.demo.services.TailRunner;
 import my.hehe.demo.services.WebSocketRunner;
-import org.apache.commons.lang.StringUtils;
-import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
-import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
 @Verticle(worker = false)
 public class WebSocketVerticle extends AbstractVerticle {
