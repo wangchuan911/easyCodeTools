@@ -5,7 +5,6 @@
     <title>tail log</title>
 </head>
 <script>
-    var lineNum = 0;
 
     function getUrlParams(name) { // 不传name返回所有值，否则返回对应值
         var url = window.location.search;
@@ -38,6 +37,11 @@
         // 返回结果
         return nameres;
     }
+
+    function init() {
+        document.getElementById("pj").value = getUrlParams("pj")
+        console.info(document.getElementById("pj").value)
+    }
 </script>
 <style type="text/css">
 
@@ -45,6 +49,7 @@
 <body onload="init()">
 <form action="/wsdl" method="post">
     <div style="width:inherit;height: inherit;">
+        <input style="width: 80%;" type="hidden" id="pj" name="pj">
         <div style="width:inherit;height: inherit;display: flex;width: 100%;">
             <label for="wsdl">wsdl</label>
             <input style="width: 80%;" type="text" id="wsdl" name="wsdl">

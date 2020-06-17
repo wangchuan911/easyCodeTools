@@ -37,7 +37,7 @@ public class WebVerticle extends AbstractVerticle {
 	boolean isServer = true;
 
 	@Override
-	public void start(Future<Void> startFuture) throws Exception {
+	public void start(Promise<Void> startFuture) throws Exception {
 		Handler bodyHandler = BodyHandler.create();
 		TemplateEngine engine = createTemplateEngine(vertx);
 		serverConfig = config().getJsonObject("server");
@@ -200,7 +200,17 @@ public class WebVerticle extends AbstractVerticle {
 				int i = s.indexOf(":");
 				return WebServiceClient.keyValue(s.substring(0, i), s.substring(i + 1));
 			}).toArray(WebServiceClient.KeyValue[]::new);
-			routingContext.response().end(WebServiceClient.callRpc(map.get("wsdl"), map.get("qName"), map.get("method"), kvs).toString());
+			String wsdl = map.get("wsdl"), qName = map.get("qName"), method = map.get("method");
+			try {
+				if (StringUtils.isNotEmpty(map.get("pj"))) {
+					JsonObject pj = config().getJsonObject("wsdl").getJsonObject("pj");
+					wsdl = pj.getString("wsdl");
+					qName = pj.getString("qName");
+				}
+			} catch (NullPointerException e) {
+
+			}
+			routingContext.response().end(WebServiceClient.callRpc(wsdl, qName, method, kvs).toString());
 		}).failureHandler(routingContext -> {
 			this.goResultHtml(engine, new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
 		});

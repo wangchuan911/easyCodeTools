@@ -165,6 +165,12 @@
     "tmpFilePath": "D:\\zip",
     "jarBinPath": "D:\\Programs\\Android\\Android Studio\\jre"
   },
+  "wsdl": {
+    "ires": {
+      "wsdl": "",
+      "qName": ""
+    }
+  },
   "server": {
     "port": {
       "web": 9099,
