@@ -203,7 +203,7 @@ public class WebVerticle extends AbstractVerticle {
 			String wsdl = map.get("wsdl"), qName = map.get("qName"), method = map.get("method");
 			try {
 				if (StringUtils.isNotEmpty(map.get("pj"))) {
-					JsonObject pj = config().getJsonObject("wsdl").getJsonObject("pj");
+					JsonObject pj = config().getJsonObject("wsdl").getJsonObject(map.get("pj"));
 					wsdl = pj.getString("wsdl");
 					qName = pj.getString("qName");
 				}
