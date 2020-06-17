@@ -210,7 +210,11 @@ public class WebVerticle extends AbstractVerticle {
 			} catch (NullPointerException e) {
 
 			}
-			routingContext.response().end(WebServiceClient.callRpc(wsdl, qName, method, kvs).toString());
+			try {
+				routingContext.response().end(WebServiceClient.callRpc(wsdl, qName, method, kvs).toString());
+			} catch (Throwable e) {
+				routingContext.fail(e);
+			}
 		}).failureHandler(routingContext -> {
 			this.goResultHtml(engine, new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
 		});

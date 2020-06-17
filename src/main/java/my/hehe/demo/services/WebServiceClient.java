@@ -32,6 +32,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 public class WebServiceClient {
@@ -79,40 +80,36 @@ public class WebServiceClient {
 		}
 	}
 
-	public static OMElement callRpc(String wsdl, String qName, String method, KeyValue... keyValues) {
+	public static OMElement callRpc(String wsdl, String qName, String method, KeyValue... keyValues) throws Throwable {
 		//返回结果
-		try {
-			logger.info("[WebService Wsdl]" + wsdl);
-			logger.info("[WebService qName]" + qName);
-			logger.info("[WebService method]" + method);
-			logger.info("[WebService obj]" + ArrayUtils.toString(keyValues));
-			RPCServiceClient serviceClient = new RPCServiceClient();
+		logger.info("[WebService Wsdl]" + wsdl);
+		logger.info("[WebService qName]" + qName);
+		logger.info("[WebService method]" + method);
+		logger.info("[WebService obj]");
+		logger.info(Arrays.stream(keyValues).map(keyValue -> String.format("%s:%s", keyValue.key, keyValue.value)).collect(Collectors.joining("\n")));
+		RPCServiceClient serviceClient = new RPCServiceClient();
 			/*Options options = serviceClient.getOptions();
 			//  指定调用WebService的URL
 			EndpointReference targetEPR = new EndpointReference(wsdl);
 			options.setTo(targetEPR);
 			//  指定add方法的参数值*/
-			prepaerClient(serviceClient, wsdl, qName, method);
-			Object[] opAddEntryArgs = Arrays.stream(keyValues).map(KeyValue::getValue).toArray();
-			//  指定Integer方法返回值的数据类型的Class对象
-			//  指定要调用的add方法及WSDL文件的命名空间
-			QName opAddEntry = new QName(qName, method);
-			/**
-			 * 调用add方法并输出该方法的返回值
-			 *  invokeBlocking方法有三个参数，其中第一个参数的类型是QName对象，
-			 *  表示要调用的方法名；第二个参数表示要调用的WebService方法的参数值，
-			 *   参数类型为Object[]；  第三个参数表示WebService方法的返回值类型的Class对象，
-			 *   参数类型为Class[],当方法没有参数时，invokeBlocking方法的第二个参数值不能是null，
-			 *   而要使用new Object[]{}
-			 */
-			return serviceClient.invokeBlocking(opAddEntry, opAddEntryArgs);
-			//如果被调用的WebService方法没有返回值，应使用RPCServiceClient类的invokeRobust方法，
-			//该方法只有两个参数，它们的含义与invokeBlocking方法的前两个参数的含义相同
-			// serviceClient.invokeRobust(opName, opAddEntryArgs);
-		} catch (Throwable e) {
-			e.printStackTrace();
-			return null;
-		}
+		prepaerClient(serviceClient, wsdl, qName, method);
+		Object[] opAddEntryArgs = Arrays.stream(keyValues).map(KeyValue::getValue).toArray();
+		//  指定Integer方法返回值的数据类型的Class对象
+		//  指定要调用的add方法及WSDL文件的命名空间
+		QName opAddEntry = new QName(qName, method);
+		/**
+		 * 调用add方法并输出该方法的返回值
+		 *  invokeBlocking方法有三个参数，其中第一个参数的类型是QName对象，
+		 *  表示要调用的方法名；第二个参数表示要调用的WebService方法的参数值，
+		 *   参数类型为Object[]；  第三个参数表示WebService方法的返回值类型的Class对象，
+		 *   参数类型为Class[],当方法没有参数时，invokeBlocking方法的第二个参数值不能是null，
+		 *   而要使用new Object[]{}
+		 */
+		return serviceClient.invokeBlocking(opAddEntry, opAddEntryArgs);
+		//如果被调用的WebService方法没有返回值，应使用RPCServiceClient类的invokeRobust方法，
+		//该方法只有两个参数，它们的含义与invokeBlocking方法的前两个参数的含义相同
+		// serviceClient.invokeRobust(opName, opAddEntryArgs);
 	}
 
 	public static class KeyValue implements Map.Entry<String, Object> {
