@@ -1,9 +1,6 @@
 package my.hehe.demo.services.impl;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
+import io.vertx.core.*;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.*;
@@ -19,7 +16,7 @@ import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -173,7 +170,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 			}
 			flow.next();
 		}).then("把特殊文件压缩到zip文件中", flow -> {
-			if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
+			/*if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
 				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
 				AtomicInteger atomicInteger = new AtomicInteger(classSet.size());
 				for (Method method : typeZipMethod) {
@@ -188,6 +185,31 @@ public class FilesCatcherImpl implements FilesCatcher {
 						return;
 					}
 				}
+			} else {
+				flow.next();
+			}*/
+			if (unSimpleFiles.size() > 0 && typeZipMethod.size() > 0) {
+				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+				CompositeFuture
+						.all(typeZipMethod
+								.stream()
+								.map(method ->
+										Future.future(promise1 -> {
+											try {
+												method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
+													promise1.complete();
+												});
+											} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+												promise1.fail(e);
+											}
+										}))
+								.collect(Collectors.toList()))
+						.onSuccess(compositeFuture -> {
+							flow.next();
+						})
+						.onFailure(throwable -> {
+							flow.fail(throwable);
+						});
 			} else {
 				flow.next();
 			}
