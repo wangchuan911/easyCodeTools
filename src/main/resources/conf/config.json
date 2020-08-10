@@ -62,8 +62,17 @@
       "isa-eoms-web-plan\\META-INF\\resources": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-plan\\src\\main\\webapp"
       ],
+      "isa-eoms-service-taskflow\\BOOT-INF\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-taskflow\\target\\classes"
+      ],
+      "isa-eoms-web-taskflow\\META-INF\\resources": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-taskflow\\src\\main\\webapp"
+      ],
       "fwbz-interface\\classes": [
         "D:\\Workspaces\\intellij\\oss\\wfm_ms\\fwbzinterface\\target\\classes"
+      ],
+      "cutover-server-0.1-gxdx": [
+        "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\target\\classes"
       ]
     },
     "source": {
@@ -121,8 +130,16 @@
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\src\\main\\java",
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-plan\\src\\main\\resources"
       ],
+      "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-taskflow\\target\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-taskflow\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-taskflow\\src\\main\\resources"
+      ],
       "D:\\Workspaces\\intellij\\oss\\wfm_ms\\fwbzinterface\\target\\classes": [
         "D:\\Workspaces\\intellij\\oss\\wfm_ms\\fwbzinterface\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\src\\main\\resources",
+        "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\src\\main\\java"
       ]
     },
     "sourceToBuild": {
@@ -160,6 +177,14 @@
       "isa-eoms-web-plan": {
         "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-plan\\target\\isa-eoms-web-plan",
         "mode": "jar"
+      },
+      "isa-eoms-web-taskflow": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-taskflow\\target\\isa-eoms-web-taskflow",
+        "mode": "jar"
+      },
+      "isa-eoms-service-taskflow": {
+        "path": "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-taskflow\\target\\isa-eoms-service-taskflow",
+        "mode": "jar"
       }
     },
     "tmpFilePath": "D:\\zip",
@@ -167,16 +192,17 @@
   },
   "wsdl": {
     "ires": {
-      "wsdl": "",
-      "qName": ""
+      "wsdl": "aaa",
+      "qName": "aaa"
     }
   },
   "server": {
     "port": {
       "web": 9099,
       "webSocket": 9098
-    }/*,
-    "mode": "client"*/
+    }
+    /*,
+        "mode": "client"*/
   },
   "data": {
     "data1": "",

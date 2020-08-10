@@ -72,30 +72,30 @@ public class JarDeployVO extends ClassDeployVO {
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 			throw e;
-		}
-		fileList.clear();
+		} finally {
+			fileList.clear();
 
-		super.deployAllAfter(zipInputStream);
-		if (!this.getRunning()) {
-			if (newFile != null) newFile.delete();
+			super.deployAllAfter(zipInputStream);
+			if (!this.getRunning()) {
+				if (newFile != null) newFile.delete();
+				newFile = null;
+				file = null;
+				return;
+			}
+
+			if (newFile.exists()) {
+				boolean isRename = false;
+				String var = file.getAbsolutePath();
+				isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
+				System.out.println(isRename);
+				isRename = newFile.renameTo(new File(var));
+				System.out.println(isRename);
+			}
+			this.deleteFile(new File(this.getPath()));
+
 			newFile = null;
 			file = null;
-			return;
-		}
-
-		if (newFile.exists()) {
-			boolean isRename = false;
-			String var = file.getAbsolutePath();
-			isRename = file.renameTo(new File((this.getPath() + '-' + (Calendar.getInstance().getTimeInMillis()) + "-bak" + this.getPackageType())));
-			System.out.println(isRename);
-			isRename = newFile.renameTo(new File(var));
-			System.out.println(isRename);
-		}
-		this.deleteFile(new File(this.getPath()));
-
-		newFile = null;
-		file = null;
-		this.setRunning(false);
+			this.setRunning(false);
     /*if (!this.getRunning()) {
       try {
         StreamUtils.close(jarOutputStream);
@@ -173,6 +173,7 @@ public class JarDeployVO extends ClassDeployVO {
       newFile = null;
       file = null;
     }*/
+		}
 	}
 
 	@Override
