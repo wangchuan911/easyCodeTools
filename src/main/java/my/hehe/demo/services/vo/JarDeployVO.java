@@ -1,14 +1,10 @@
 package my.hehe.demo.services.vo;
 
-import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.StreamUtils;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.util.*;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarOutputStream;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -23,7 +19,7 @@ public class JarDeployVO extends ClassDeployVO {
 			"powershell.exe -Command \"cd '%s' ; & '%s" + File.separator + "bin" + File.separator + "jar.exe' -uf '%s' '%s'\""
 			: "cd %s && %s" + File.separator + "bin" + File.separator + "jar -uf %s %s";
 
-	Set<String> updateDir = new HashSet<>();
+	Set<String> fileList = new HashSet<>();
 
 	public synchronized void deploySingle(ZipInputStream zipInputStream, ZipEntry zipEntry) throws Throwable {
 		super.deploySingle(zipInputStream, zipEntry);
@@ -53,26 +49,31 @@ public class JarDeployVO extends ClassDeployVO {
     System.out.println(command);
     Process p = Runtime.getRuntime().exec(command);
     p.waitFor();*/
-		String dir = zipEntry.getName().substring(this.getProjectName().length() + 1);
-		dir = dir.substring(0, dir.indexOf(File.separator));
-		if (!updateDir.contains(dir)) {
-			updateDir.add(dir);
+		String dir = zipEntry.getName().substring(this.getProjectName().length() + 1).replace("\\", File.separator);
+		/*dir = dir.substring(0, dir.indexOf(File.separator));*/
+		System.out.println(dir);
+		if (!fileList.contains(dir)) {
+			fileList.add(dir);
 		}
 	}
 
 	@Override
 	public void deployAllAfter(ZipInputStream zipInputStream) throws Throwable {
 
-		updateDir.stream().forEach(s -> {
-			String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), s);
+		try {
+			System.out.println();
+			String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), fileList.stream().collect(Collectors.joining(isWindows ? "' '" : " ")));
 			System.out.println(command);
-			try {
+			if (isWindows) {
 				Runtime.getRuntime().exec(command).waitFor();
-			} catch (IOException | InterruptedException e) {
-				e.printStackTrace();
+			} else {
+				Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", command}).waitFor();
 			}
-		});
-		updateDir.clear();
+		} catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+			throw e;
+		}
+		fileList.clear();
 
 		super.deployAllAfter(zipInputStream);
 		if (!this.getRunning()) {
