@@ -10,7 +10,8 @@
         "D:\\Workspaces\\intellij\\RimIres\\web\\WEB-INF\\classes\\production\\RimIres"
       ],
       "resservice": [
-        "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\webapp"
+        "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\webapp",
+        "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-view\\src\\main\\page"
       ],
       "IomInterfaceGX\\WEB-INF\\classes": [
         "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\out\\production\\IomInterfaceGX",
@@ -35,8 +36,8 @@
         "D:\\Workspaces\\Eclipse-O\\resweb\\out\\production\\resweb",
         "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\classes"
       ],
-      "resweb\\WEB-INF\\jsp": [
-        "D:\\Workspaces\\Eclipse-O\\resweb\\web\\WEB-INF\\jsp"
+      "resweb": [
+        "D:\\Workspaces\\Eclipse-O\\resweb\\web"
       ],
       "eoms_IomInterfaceGX\\WEB-INF\\classes": [
         "D:\\Workspaces\\intellij\\eoms_IomInterfaceGX\\out\\production\\eoms_IomInterfaceGX"
@@ -68,14 +69,29 @@
       "isa-eoms-web-taskflow\\META-INF\\resources": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-taskflow\\src\\main\\webapp"
       ],
+      "isa-eoms-web-comprehensive\\META-INF\\resources": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-web\\isa-eoms-web-comprehensive\\src\\main\\webapp"
+      ],
       "fwbz-interface\\classes": [
         "D:\\Workspaces\\intellij\\oss\\wfm_ms\\fwbzinterface\\target\\classes"
       ],
       "cutover-server-0.1-gxdx": [
         "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\target\\classes"
+      ],
+      "ResMaster20EJB": [
+        "D:\\Workspaces\\Eclipse-O\\RS_AF\\bin"
+      ],
+      "isa-eoms-service-base": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-base\\target\\classes"
+      ],
+      "resweb-v7": [
+        "D:\\Workspaces\\intellij\\resweb\\src\\main\\webapp"
       ]
     },
     "source": {
+      "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-base\\target\\classes": [
+        "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-base\\src\\main\\java"
+      ],
       "D:\\Workspaces\\Eclipse-O\\resservice\\target\\classes": [
         "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\java",
         "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\resources"
@@ -140,6 +156,9 @@
       "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\target\\classes": [
         "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\src\\main\\resources",
         "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\Eclipse-O\\RS_AF\\bin": [
+        "D:\\Workspaces\\Eclipse-O\\RS_AF\\src"
       ]
     },
     "sourceToBuild": {
