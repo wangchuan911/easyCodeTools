@@ -120,7 +120,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 	@Override
 	public void dual(Set<String> fileList, Handler<AsyncResult<String>> outputBodyHandler) {
 		Promise promise = Promise.promise();
-		promise.future().setHandler(outputBodyHandler);
+		promise.future().onComplete(outputBodyHandler);
 		if (fileList == null || fileList.size() == 0) {
 			promise.fail(new NullPointerException());
 		}

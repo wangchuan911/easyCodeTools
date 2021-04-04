@@ -11,7 +11,6 @@ public class PromiseFlow {
 	static Vertx vertx = Vertx.vertx();
 	final PromiseFlow.FlowUnit head = new PromiseFlow.FlowUnit(this.size = 0, "start", null);
 	int size;
-	STATE state = STATE.PREPARE;
 	Handler<FlowEndUnitState> finalHandler;
 	Handler<Throwable> throwHandler;
 
@@ -23,31 +22,11 @@ public class PromiseFlow {
 	public PromiseFlow() {
 	}
 
-	void execute(PromiseFlow.FlowUnit flowUnit, Map<String, Object> params) {
-		this.isRuning(true);
-		if (flowUnit == null) {
-			this.end(STATE.FINISH, params);
-			return;
-		}
-		vertx.executeBlocking(promise -> {
-			flowUnit.handle(new FlowUnitState(promise, params));
-		}, asyncResult -> {
-			if (asyncResult.succeeded()) {
-				this.execute(flowUnit.nextUnit, params);
-			} else {
-				if (throwHandler != null)
-					throwHandler.handle(asyncResult.cause());
-				this.end(STATE.FAIL, params);
-			}
-		});
-	}
-
 	public PromiseFlow then(Handler<FlowUnitState> handle) {
 		return this.then(null, handle);
 	}
 
 	public PromiseFlow then(String name, Handler<FlowUnitState> handle) {
-		this.isPrepare(true);
 		PromiseFlow.FlowUnit idxUnit = this.head;
 		for (int i = 0; i < this.size - 1; i++) {
 			idxUnit = idxUnit.nextUnit;
@@ -63,34 +42,107 @@ public class PromiseFlow {
 	}
 
 	public PromiseFlow catchThen(Handler<Throwable> throwableHandler) {
-		this.isPrepare(true);
 		this.throwHandler = throwableHandler;
 		return this;
 	}
 
 	public PromiseFlow finalThen(Handler<FlowEndUnitState> finalHandler) {
-		this.isPrepare(true);
 		this.finalHandler = finalHandler;
 		return this;
 	}
 
-	void end(STATE state, Map<String, Object> params) {
-		this.isRuning(true);
-		this.state = state;
-		if (this.finalHandler != null) {
-			this.finalHandler.handle(new FlowEndUnitState(params));
+	public PromiseFlow.Flow start() {
+		return start(null);
+	}
+
+	public PromiseFlow.Flow start(Map<String, Object> params) {
+		PromiseFlow.Flow flow = new PromiseFlow.Flow(this.head, this.finalHandler, this.throwHandler);
+		flow.start(params);
+		return flow;
+	}
+
+
+	public class Flow {
+		PromiseFlow.FlowUnit head;
+		STATE state = STATE.PREPARE;
+		Handler<FlowEndUnitState> finalHandler;
+		Handler<Throwable> throwHandler;
+
+		public Flow(FlowUnit head, Handler<FlowEndUnitState> finalHandler, Handler<Throwable> throwHandler) {
+			this.head = head;
+			this.finalHandler = finalHandler;
+			this.throwHandler = throwHandler;
 		}
+
+		void execute(PromiseFlow.FlowUnit flowUnit, Map<String, Object> params) {
+			this.isRuning(true);
+			if (flowUnit == null) {
+				this.end(STATE.FINISH, params);
+				return;
+			}
+			vertx.executeBlocking(promise -> {
+				flowUnit.handle(new FlowUnitState(promise, params));
+			}, asyncResult -> {
+				if (asyncResult.succeeded()) {
+					this.execute(flowUnit.nextUnit, params);
+				} else {
+					if (throwHandler != null)
+						throwHandler.handle(asyncResult.cause());
+					this.end(STATE.FAIL, params);
+				}
+			});
+		}
+
+		void end(STATE state, Map<String, Object> params) {
+			this.isRuning(true);
+			this.state = state;
+			if (this.finalHandler != null) {
+				this.finalHandler.handle(new FlowEndUnitState(params));
+			}
 //		vertx.close();
-	}
+		}
 
-	public void start() {
-		this.start(null);
-	}
+		void start() {
+			this.start(null);
+		}
 
-	public void start(Map<String, Object> params) {
-		this.isPrepare(true);
-		state = STATE.RUNING;
-		execute(this.head, params == null ? new HashMap<>() : params);
+		void start(Map<String, Object> params) {
+			this.isPrepare(true);
+			state = STATE.RUNING;
+			execute(this.head, params == null ? new HashMap<>() : params);
+		}
+
+		boolean isPrepare(boolean throwbale) {
+			if (this.state.code != STATE.PREPARE.code) {
+				if (throwbale) throw new RuntimeException("not Prepare");
+				return false;
+			}
+			return true;
+		}
+
+		boolean isRuning(boolean throwbale) {
+			if (this.state.code != STATE.RUNING.code) {
+				if (throwbale) throw new RuntimeException("not Running");
+				return false;
+			}
+			return true;
+		}
+
+		boolean isStop(boolean throwbale) {
+			if (this.isPrepare(false) || this.isRuning(false)) {
+				if (throwbale) throw new RuntimeException("not Stop");
+				return false;
+			}
+			return true;
+		}
+
+		public boolean isComplete() {
+			return this.state == STATE.FINISH;
+		}
+
+		public boolean isError() {
+			return this.state == STATE.FAIL;
+		}
 	}
 
 	public final class FlowEndUnitState extends FlowUnitState {
@@ -166,44 +218,35 @@ public class PromiseFlow {
 
 	}
 
-	public static void main(String[] args) {
-		new PromiseFlow(flowUnit -> {
-			System.out.println(flowUnit.toString());
-			System.out.println(1);
-			flowUnit.next();
-		}).then(flowUnit -> {
-			System.out.println(flowUnit.toString());
-			System.out.println(2);
-			flowUnit.next();
-		}).then(flowUnit -> {
-			System.out.println(flowUnit.toString());
-			System.out.println(3);
-			String a = null;
-			a.toString();
-		}).catchThen(throwable -> {
-			throwable.printStackTrace();
-		}).finalThen(promiseFlow -> {
-			System.out.println("fin");
-		}).start();
+	static PromiseFlow f = new PromiseFlow(flowUnit -> {
+		System.out.println(flowUnit.toString());
+		System.out.println(1);
+		flowUnit.next();
+	}).then(flowUnit -> {
+		System.out.println(flowUnit.toString());
+		System.out.println(2);
+		String a = null;
+		a.toString();
+		flowUnit.next();
+	}).then(flowUnit -> {
+		System.out.println(flowUnit.toString());
+		System.out.println(3);
+	}).catchThen(throwable -> {
+		throwable.printStackTrace();
+	}).finalThen(promiseFlow -> {
+		System.out.println("fin");
+	});
 
-		new PromiseFlow().then(flowUnit -> {
-			System.out.println(flowUnit.toString());
-			System.out.println(1);
-			flowUnit.next();
-		}).then(flowUnit -> {
-			System.out.println(flowUnit.toString());
-			System.out.println(2);
-			flowUnit.next();
-		}).then(flowUnit -> {
-			System.out.println(flowUnit.toString());
-			System.out.println(3);
-			String a = null;
-			a.toString();
-		}).catchThen(throwable -> {
-			throwable.printStackTrace();
-		}).finalThen(promiseFlow -> {
-			System.out.println("fin");
-		}).start();
+	public static void main(String[] args) {
+		System.out.println("start");
+		f.start();
+
+//		f.start();
+		System.out.println("end");
+		String uuid = UUID.randomUUID().toString().replaceAll("-", "");
+		System.out.println(uuid);
+		System.out.println(uuid.length());
+
 	}
 
 	enum STATE {
@@ -215,35 +258,5 @@ public class PromiseFlow {
 		}
 	}
 
-	boolean isPrepare(boolean throwbale) {
-		if (this.state.code != STATE.PREPARE.code) {
-			if (throwbale) throw new RuntimeException("not Prepare");
-			return false;
-		}
-		return true;
-	}
 
-	boolean isRuning(boolean throwbale) {
-		if (this.state.code != STATE.RUNING.code) {
-			if (throwbale) throw new RuntimeException("not Running");
-			return false;
-		}
-		return true;
-	}
-
-	boolean isStop(boolean throwbale) {
-		if (this.isPrepare(false) || this.isRuning(false)) {
-			if (throwbale) throw new RuntimeException("not Stop");
-			return false;
-		}
-		return true;
-	}
-
-	public boolean isComplete() {
-		return this.state == STATE.FINISH;
-	}
-
-	public boolean isError() {
-		return this.state == STATE.FAIL;
-	}
 }
