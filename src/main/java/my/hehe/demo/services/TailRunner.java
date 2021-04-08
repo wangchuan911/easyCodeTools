@@ -2,6 +2,7 @@ package my.hehe.demo.services;
 
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,10 +11,9 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class TailRunner extends WebSocketRunner {
-	private Set<TailExcutor> tailExcutors = new HashSet<>();
+	private Map<String, Executor> executorMap = new HashMap<>();
 	static Pattern pattern = Pattern.compile("(?:\\/[\\w\\d]+)*\\/(tail)\\/([\\w\\d]+)", Pattern.CASE_INSENSITIVE);
 	JsonObject webServiceConfig;
 
@@ -26,6 +26,7 @@ public class TailRunner extends WebSocketRunner {
 		Matcher matcher = pattern.matcher(serverWebSocket.path());
 		if (!matcher.find()) return false;
 		String target = matcher.group(2);
+		if (StringUtils.isEmpty(target)) return false;
 		/*check  state*/
 		/*Set<TailExcutor> newExcutors = tailExcutors.stream().filter(excutor ->
 				!(excutor.STATE == STATE.FINISH || excutor.STATE == STATE.FAIL || !excutor.isAlive())
@@ -33,31 +34,32 @@ public class TailRunner extends WebSocketRunner {
 		tailExcutors.clear();
 		tailExcutors.addAll(newExcutors);*/
 
-		Optional<TailExcutor> optional = tailExcutors.stream().filter(tailExcutor ->
-				target.equals(tailExcutor.id)
-		).findFirst();
-
-		TailExcutor tailExcutor;
-		if (!optional.isPresent()) {
-			tailExcutor = new TailExcutor(target);
+		Executor executor = executorMap.get(target);
+		if (executor == null || !executor.isAlive() || executor.isInterrupted()) {
+			Executor deadExecutor = (executor != null) ? executor : null;
 			JsonObject config = this.webServiceConfig.getJsonObject(matcher.group(1)).getJsonObject(target);
-			tailExcutor.encode = (config.getString("encode", Charset.defaultCharset().toString()));
-			tailExcutor.path = (config.getString("path"));
-			if (!new File(tailExcutor.path).exists()) return false;
+			executor = new Executor(target,
+					config.getString("path"),
+					config.getString("encode", Charset.defaultCharset().toString()));
+			if (!new File(executor.path).exists()) return false;
 			try {
-				tailExcutor.webSocketSet.add(serverWebSocket);
-				tailExcutor.start();
-				tailExcutors.add(tailExcutor);
-				System.out.println(String.format("create thread: %s", tailExcutor.toString()));
+				executor.webSocketSet.add(serverWebSocket);
+				executor.start();
+				executorMap.put(target, executor);
+				System.out.println(String.format("create thread: %s", executor.toString()));
 			} catch (Throwable e) {
 				e.printStackTrace();
-				tailExcutors.remove(tailExcutor);
+				executorMap.remove(target);
 				return false;
 			}
+			if (deadExecutor != null) {
+				if (deadExecutor.webSocketSet.size() > 0)
+					executor.webSocketSet.addAll(deadExecutor.webSocketSet);
+			}
+
 		} else {
-			tailExcutor = optional.get();
-			System.out.println(String.format("add socket to thread: %s", tailExcutor.toString()));
-			tailExcutor.webSocketSet.add(serverWebSocket);
+			System.out.println(String.format("add socket to thread: %s", executor.toString()));
+			executor.webSocketSet.add(serverWebSocket);
 		}
 		serverWebSocket.closeHandler(aVoid -> {
 			this.close(serverWebSocket);
@@ -70,42 +72,36 @@ public class TailRunner extends WebSocketRunner {
 
 	@Override
 	public synchronized void close(ServerWebSocket serverWebSocket) {
-		System.out.println("close");
-		System.out.println(serverWebSocket);
+		/*System.out.println("close");
+		System.out.println(serverWebSocket);*/
 		Matcher matcher = pattern.matcher(serverWebSocket.path());
 		if (!matcher.find()) return;
 		String target = matcher.group(2);
-		System.out.println(this.tailExcutors);
-		this.tailExcutors
-				.stream()
-				.filter(tailExcutor -> {
-					System.out.println(target + "_" + tailExcutor.id);
-					return target.equals(tailExcutor.id);
-				})
-				.collect(Collectors.toSet())
-				.stream()
-				.forEach(tailExcutor -> {
-					/*System.out.println(tailExcutor.webSocketSet);
-					System.out.println(tailExcutor.webSocketSet.contains(serverWebSocket));*/
-					if (tailExcutor.webSocketSet.contains(serverWebSocket)) {
-						tailExcutor.webSocketSet.remove(serverWebSocket);
-						if (0 == tailExcutor.webSocketSet.size()) {
-							tailExcutor.close();
-						}
-					}
-				});
+		/*System.out.println(this.tailExcutors);*/
+
+		Executor executor = this.executorMap.get(target);
+		if (executor != null) {
+			if (executor.webSocketSet.contains(serverWebSocket)) {
+				executor.webSocketSet.remove(serverWebSocket);
+				if (0 == executor.webSocketSet.size()) {
+					executor.close();
+				}
+			}
+		}
 	}
 
-	class TailExcutor extends Thread {
+	class Executor extends Thread {
+		final String target;
 		final Set<ServerWebSocket> webSocketSet;
-		final String id;
-		String path;
+		final String path;
 		String encode;
 		BufferedReader bufferedReader;
 		Process process = null;
 
-		public TailExcutor(String id) {
-			this.id = id;
+		public Executor(String target, String path, String encode) {
+			this.target = target;
+			this.path = path;
+			this.encode = encode;
 			this.webSocketSet = new HashSet<>();
 		}
 
@@ -113,13 +109,13 @@ public class TailRunner extends WebSocketRunner {
 		public boolean equals(Object o) {
 			if (this == o) return true;
 			if (o == null || getClass() != o.getClass()) return false;
-			TailExcutor excutor = (TailExcutor) o;
-			return id.equals(excutor.id);
+			Executor excutor = (Executor) o;
+			return getId() == excutor.getId();
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(id);
+			return Objects.hash(getId());
 		}
 
 		@Override
@@ -164,25 +160,27 @@ public class TailRunner extends WebSocketRunner {
 		private void destroyAll() {
 			if (process != null) {
 				try {
-					process.destroy();
+					process.destroyForcibly();
 				} catch (Throwable e1) {
 				}
+			}
+			if (!this.isInterrupted()) {
+				this.interrupt();
 			}
 			webSocketSet.clear();
 		}
 
 		public synchronized void close() {
-			if (!this.isAlive() || !this.process.isAlive()) {
-				return;
+			if (this.process.isAlive() || !this.isInterrupted()) {
+				this.destroyAll();
+				System.out.println(String.format("%s process is killing !", this.toString()));
 			}
+			TailRunner.this.executorMap.remove(Executor.this.target);
 			/*System.out.println("start release!");*/
-			this.destroyAll();
-			System.out.println(String.format("%s is ide ,release!", this.toString()));
-			TailRunner.this.tailExcutors.remove(this);
 		}
 
 		private synchronized void openFailAndClose(Throwable e) {
-			this.destroyAll();
+			this.close();
 			e.printStackTrace();
 		}
 
