@@ -23,35 +23,29 @@ public class FilesDeployImpl implements FilesDeploy {
 
 	final static boolean isWindows = System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0;
 
-	private static FilesDeployImpl filesDeploy = new FilesDeployImpl();
+	private static FilesDeployImpl filesDeploy;
 
-	public static FilesDeployImpl getInstance() {
-		return filesDeploy;
-	}
 
-	public static FilesDeployImpl getInstance(JsonObject option) {
-		((FilesDeployImpl) filesDeploy).setConfig(option);
+	public synchronized static FilesDeployImpl getInstance(JsonObject option) {
+		if (filesDeploy == null) {
+			filesDeploy = new FilesDeployImpl();
+			if (option != null) {
+				filesDeploy.setConfig(option);
+			}
+		}
 		return filesDeploy;
 	}
 
 	public AtomicInteger onceUser = new AtomicInteger(0);
 
-	Map<String, DeployVO> deployVOS = null;
+	Map<String, DeployVO> deployVOS = new HashMap<>();
 	JsonObject deploys = null;
 
 	private FilesDeployImpl() {
 
 	}
 
-	public synchronized void setConfig(JsonObject config) {
-
-
-		if (deployVOS == null) {
-			deployVOS = new HashMap<>();
-		} else {
-			return;
-		}
-
+	void setConfig(JsonObject config) {
 		deploys = config.getJsonObject("deploy");
 		System.setProperty("jarBinPath", config.getString("jarBinPath"));
 

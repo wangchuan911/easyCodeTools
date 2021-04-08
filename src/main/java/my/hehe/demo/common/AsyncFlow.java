@@ -5,173 +5,200 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.annotation.UtilsInital;
+import org.apache.commons.codec.digest.Md5Crypt;
 import org.apache.commons.lang.StringUtils;
 
+import javax.xml.crypto.Data;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AsyncFlow {
 
-  private Deque<FlowUnit> handlers = new LinkedList<>();
+	private Deque<FlowUnit> handlers = new LinkedList<>();
 
-  private FlowUnit flowUnitNow = null;
+	private FlowUnit flowUnitNow = null;
 
-  static private Vertx vertx = null;
+	static private Vertx vertx = null;
 
-  private Throwable throwable = null;
+	private Throwable throwable = null;
 
-  private Handler<Throwable> catchHandler = STATIC_CATCH_HANDLER;
-  //finlly 执行器
-  private Handler<AsyncFlow> finalHandler = null;
-  //数据总线
-  private Map<String, Object> busData = new HashMap(4);
+	private Handler<Throwable> catchHandler = STATIC_CATCH_HANDLER;
+	//finlly 执行器
+	private Handler<AsyncFlow> finalHandler = null;
+	//数据总线
+	private Map<String, Object> busData = new HashMap(4);
 
-  private int state = INITAIL;
+	private int state = INITAIL;
 
-  static private final int STARTING = 0;
-  static private final int COMPLETE = 1;
-  static private final int ERROR = -1;
-  static private final int INITAIL = -2;
-  static private final Handler<Throwable> STATIC_CATCH_HANDLER = throwableFlow -> {
-    throwableFlow.printStackTrace();
-  };
-  static private final String FORMATE = "start handler [%d:%s] -->%s";
-  static private final String ERROR_FORMAT = "流程[ %s ] 执行异常 [ %s ] 原因 [ %s ] 位置 { %s }";
-
-
-  private AsyncFlow() {
-
-  }
-
-  public static AsyncFlow getInstance() {
-    return new AsyncFlow();
-  }
-
-  public synchronized AsyncFlow then(Handler<FlowUnit> handle) {
-    return then(null, handle);
-  }
-
-  public synchronized AsyncFlow then(String name, Handler<FlowUnit> handle) {
-    this.undoAtStart();
-    this.undoAtCompelete();
-    this.handlers.addLast(new FlowUnit().setOrder(handlers.size()).setHandler(handle).setName(name));
-    return this;
-  }
-
-  //放在方法中防止重复调用
-  private void undoAtCompelete() {
-    if (this.state == COMPLETE) {
-      throw new RuntimeException("flow is compelete!");
-    }
-  }
-
-  private void undoAtStart() {
-    if (this.state == STARTING) {
-      throw new RuntimeException("flow is Starting!");
-    }
-  }
-
-  public void start() {
-    synchronized (this) {
-      this.undoAtStart();
-      this.undoAtCompelete();
-      this.state = STARTING;
-    }
-    this.next();
-  }
+	static private final int STARTING = 0;
+	static private final int COMPLETE = 1;
+	static private final int ERROR = -1;
+	static private final int INITAIL = -2;
+	static private final Handler<Throwable> STATIC_CATCH_HANDLER = throwableFlow -> {
+		throwableFlow.printStackTrace();
+	};
+	static private final String FORMATE = "start handler [%d:%s] -->%s";
+	static private final String ERROR_FORMAT = "流程[ %s ] 执行异常 [ %s ] 原因 [ %s ] 位置 { %s }";
 
 
-  private void next() {
-    if (this.state == ERROR) return;
-    this.undoAtCompelete();
-    this.flowUnitNow = handlers.pollFirst();
-    if (flowUnitNow == null) {
-      this.end();
-      return;
-    }
-    vertx.executeBlocking(promise -> {
-      this.flowUnitNow.setPromise(promise);
-      this.flowUnitNow.setParam(busData);
-      try {
-        System.out.println(String.format(FORMATE, this.flowUnitNow.getOrder(), this.flowUnitNow.getName(), Thread.currentThread().toString()));
-        this.flowUnitNow.handle();
-      } catch (Throwable e) {
-        this.flowUnitNow.fail(e);
-      }
-    }, async -> {
-      if (!async.succeeded()) {
-        this.doFail(async.cause());
-      } else {
-        this.next();
-      }
-    });
-  }
+	private AsyncFlow() {
+
+	}
+
+	public static AsyncFlow getInstance() {
+		return new AsyncFlow();
+	}
+
+	public synchronized AsyncFlow then(Handler<FlowUnit> handle) {
+		return then(null, handle);
+	}
+
+	public synchronized AsyncFlow then(String name, Handler<FlowUnit> handle) {
+		this.undoAtStart();
+		this.undoAtCompelete();
+		this.handlers.addLast(new FlowUnit().setOrder(handlers.size()).setHandler(handle).setName(name));
+		return this;
+	}
+
+	//放在方法中防止重复调用
+	private void undoAtCompelete() {
+		if (this.state == COMPLETE) {
+			throw new RuntimeException("flow is compelete!");
+		}
+	}
+
+	private void undoAtStart() {
+		if (this.state == STARTING) {
+			throw new RuntimeException("flow is Starting!");
+		}
+	}
+
+	public void start() {
+		synchronized (this) {
+			this.undoAtStart();
+			this.undoAtCompelete();
+			this.state = STARTING;
+		}
+		this.next();
+	}
 
 
-  private void doFail(Throwable e) {
-    try {
-      this.state = ERROR;
-      if (StringUtils.isNotEmpty(this.flowUnitNow.getName())) {
-        String err = this.errorMsg(e);
-        e = new Throwable(err, e);
-      }
-      if (this.catchHandler != null) {
-        throwable = e;
-        this.catchHandler.handle(e);
-      }
-    } finally {
-      this.end();
-    }
-  }
+	private void next() {
+		if (this.state == ERROR) return;
+		this.undoAtCompelete();
+		this.flowUnitNow = handlers.pollFirst();
+		if (flowUnitNow == null) {
+			this.end();
+			return;
+		}
+		vertx.executeBlocking(promise -> {
+			this.flowUnitNow.setPromise(promise);
+			this.flowUnitNow.setParam(busData);
+			try {
+				System.out.println(String.format(FORMATE, this.flowUnitNow.getOrder(), this.flowUnitNow.getName(), Thread.currentThread().toString()));
+				this.flowUnitNow.handle();
+			} catch (Throwable e) {
+				this.flowUnitNow.fail(e);
+			}
+		}, async -> {
+			if (!async.succeeded()) {
+				this.doFail(async.cause());
+			} else {
+				this.next();
+			}
+		});
+	}
 
-  private String errorMsg(Throwable var) {
-    return String.format(ERROR_FORMAT, this.flowUnitNow.getName(), var.getClass().getName(), var.getMessage(), (var.getClass() == Throwable.class ? var.getStackTrace()[1] : var.getStackTrace()[0]).toString());
-  }
+
+	private void doFail(Throwable e) {
+		try {
+			this.state = ERROR;
+			if (StringUtils.isNotEmpty(this.flowUnitNow.getName())) {
+				String err = this.errorMsg(e);
+				e = new Throwable(err, e);
+			}
+			if (this.catchHandler != null) {
+				throwable = e;
+				this.catchHandler.handle(e);
+			}
+		} finally {
+			this.end();
+		}
+	}
+
+	private String errorMsg(Throwable var) {
+		return String.format(ERROR_FORMAT, this.flowUnitNow.getName(), var.getClass().getName(), var.getMessage(), (var.getClass() == Throwable.class ? var.getStackTrace()[1] : var.getStackTrace()[0]).toString());
+	}
 
 
-  public void end() {
-    if (this.finalHandler != null) {
-      this.finalHandler.handle(this);
-      this.finalHandler = null;
-    }
-    if (this.busData != null) {
-      this.busData.clear();
-      this.busData = null;
-    }
-    this.state = COMPLETE;
-    this.flowUnitNow = null;
-  }
+	public void end() {
+		if (this.finalHandler != null) {
+			this.finalHandler.handle(this);
+			this.finalHandler = null;
+		}
+		if (this.busData != null) {
+			this.busData.clear();
+			this.busData = null;
+		}
+		this.state = COMPLETE;
+		this.flowUnitNow = null;
+	}
 
-  public AsyncFlow catchThen(Handler<Throwable> throwableHandler) {
-    this.catchHandler = throwableHandler;
-    return this;
-  }
+	public AsyncFlow catchThen(Handler<Throwable> throwableHandler) {
+		this.catchHandler = throwableHandler;
+		return this;
+	}
 
-  public AsyncFlow finalThen(Handler<AsyncFlow> finalHandler) {
-    this.finalHandler = finalHandler;
-    return this;
-  }
+	public AsyncFlow finalThen(Handler<AsyncFlow> finalHandler) {
+		this.finalHandler = finalHandler;
+		return this;
+	}
 
-  public synchronized Map getParam() {
-    if (this.busData == null) this.busData = new ConcurrentHashMap();
-    return this.busData;
-  }
+	public synchronized Map getParam() {
+		if (this.busData == null) this.busData = new ConcurrentHashMap();
+		return this.busData;
+	}
 
-  public Throwable getError() {
-    return this.throwable;
-  }
+	public Throwable getError() {
+		return this.throwable;
+	}
 
-  public boolean isComplete() {
-    return this.state == COMPLETE;
-  }
+	public boolean isComplete() {
+		return this.state == COMPLETE;
+	}
 
-  public boolean isError() {
-    return this.state == ERROR;
-  }
+	public boolean isError() {
+		return this.state == ERROR;
+	}
 
-  public static void main(String[] args) {
-
+	public static void main(String[] args) {
+		/*String str = "73.25";
+		long a = System.currentTimeMillis(), b, c = 100000000, d = 100000, e = (long) (c / d);
+		for (int i = 0; i < c; i++) {
+			if (i == d) {
+				b = System.currentTimeMillis();
+				Date data = new Date(b + (e-- * (b - a)));
+				System.out.println("预计" + data.toString());
+				a = System.currentTimeMillis();
+				d += 100000;
+			}
+			str = Md5Crypt.md5Crypt(str.getBytes("utf-8"));
+		}
+		System.out.println(str);
+		if (true) {
+			return;
+		}*/
+ /*String a1=null;
+    String b1=null;
+    System.out.println(a1!=b1);*/
+		Date res = new Date();
+		LocalDateTime localDateTime = LocalDateTime.ofInstant(res.toInstant(), ZoneId.systemDefault());
+		System.out.println(String.format("%04d年%02d月%02d日 %02d:%02d", localDateTime.getYear(), localDateTime.getDayOfMonth(), localDateTime.getDayOfMonth(), localDateTime.getHour(), localDateTime.getMinute()));
+		System.out.println((int) ' ');
+		System.out.println((int) ' ');
  /*   List<Integer> integers = new ArrayList<>();
     integers.add(1);
     integers.add(3);
@@ -198,126 +225,126 @@ public class AsyncFlow {
     System.out.println(a1);
    */
 
-    AtomicInteger a = new AtomicInteger(0);
-    AtomicInteger b = new AtomicInteger(0);
-    AsyncFlow.initUtil(Vertx.vertx(), null);
-    try {
-      AsyncFlow f = AsyncFlow.getInstance()
-        .then("flow" + a.incrementAndGet(), flow -> {
-          System.out.println(b.incrementAndGet());
-          flow.next();
-        }).then("flow" + a.incrementAndGet(), flow -> {
+		/*AtomicInteger a = new AtomicInteger(0);
+		AtomicInteger b = new AtomicInteger(0);
+		AsyncFlow.initUtil(Vertx.vertx(), null);
+		try {
+			AsyncFlow f = AsyncFlow.getInstance()
+					.then("flow" + a.incrementAndGet(), flow -> {
+						System.out.println(b.incrementAndGet());
+						flow.next();
+					}).then("flow" + a.incrementAndGet(), flow -> {
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
+						System.out.println(b.incrementAndGet());
+						flow.next();
 
-        }).then("flow" + a.incrementAndGet(), flow -> {
-          System.out.println(b.incrementAndGet());
-          String aa = null;
+					}).then("flow" + a.incrementAndGet(), flow -> {
+						System.out.println(b.incrementAndGet());
+						String aa = null;
 //          aa.length();
-          aa.indexOf(1);
-          flow.next();
+						aa.indexOf(1);
+						flow.next();
 //          flow.fail("error");
 
-        }).then("flow" + a.incrementAndGet(), flow -> {
+					}).then("flow" + a.incrementAndGet(), flow -> {
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
+						System.out.println(b.incrementAndGet());
+						flow.next();
 
-        }).then("flow" + a.incrementAndGet(), flow -> {
+					}).then("flow" + a.incrementAndGet(), flow -> {
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
-        }).then("flow" + a.incrementAndGet(), flow -> {
+						System.out.println(b.incrementAndGet());
+						flow.next();
+					}).then("flow" + a.incrementAndGet(), flow -> {
 
-          System.out.println(b.incrementAndGet());
-          flow.next();
+						System.out.println(b.incrementAndGet());
+						flow.next();
 
-        }).catchThen(asyncFlow -> {
+					}).catchThen(asyncFlow -> {
 
-        }).finalThen(asyncFlow -> {
-          System.out.println("end!");
-        });
-      f.start();
-    } catch (
-      Exception e) {
-      e.printStackTrace();
-    }
+					}).finalThen(asyncFlow -> {
+						System.out.println("end!");
+					});
+			f.start();
+		} catch (
+				Exception e) {
+			e.printStackTrace();
+		}*/
 
-  }
+	}
 
-  @UtilsInital
-  static void initUtil(Vertx vertx, JsonObject jsonObject) {
-    try {
-      AsyncFlow.vertx = vertx;
-    } catch (Throwable e) {
-      e.printStackTrace();
-    }
-  }
+	@UtilsInital
+	static void initUtil(Vertx vertx) {
+		try {
+			AsyncFlow.vertx = vertx;
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+	}
 
-  public static class FlowUnit {
-    private int order;
-    private String name;
-    private Handler<FlowUnit> handler;
-    private Promise promise;
-    private Map<String, Object> param;
+	public static class FlowUnit {
+		private int order;
+		private String name;
+		private Handler<FlowUnit> handler;
+		private Promise promise;
+		private Map<String, Object> param;
 
-    private FlowUnit() {
-    }
+		private FlowUnit() {
+		}
 
-    public int getOrder() {
-      return order;
-    }
+		public int getOrder() {
+			return order;
+		}
 
-    public FlowUnit setOrder(int order) {
-      this.order = order;
-      return this;
-    }
+		public FlowUnit setOrder(int order) {
+			this.order = order;
+			return this;
+		}
 
-    public String getName() {
-      return name;
-    }
+		public String getName() {
+			return name;
+		}
 
-    public FlowUnit setName(String name) {
-      this.name = name;
-      return this;
-    }
+		public FlowUnit setName(String name) {
+			this.name = name;
+			return this;
+		}
 
-    void handle() {
-      this.handler.handle(this);
-    }
+		void handle() {
+			this.handler.handle(this);
+		}
 
-    FlowUnit setHandler(Handler<FlowUnit> handler) {
-      this.handler = handler;
-      return this;
-    }
+		FlowUnit setHandler(Handler<FlowUnit> handler) {
+			this.handler = handler;
+			return this;
+		}
 
-    void setPromise(Promise promise) {
-      this.promise = promise;
-    }
+		void setPromise(Promise promise) {
+			this.promise = promise;
+		}
 
-    public void next() {
-      this.promise.complete();
-    }
+		public void next() {
+			this.promise.complete();
+		}
 
-    public void fail(String s) {
-      this.promise.fail(s);
-    }
+		public void fail(String s) {
+			this.promise.fail(s);
+		}
 
-    public void fail(Throwable t) {
-      this.promise.fail(t);
-    }
+		public void fail(Throwable t) {
+			this.promise.fail(t);
+		}
 
-    void setParam(Map param) {
-      this.param = param;
-    }
+		void setParam(Map param) {
+			this.param = param;
+		}
 
-    public synchronized <T> T getParam(String key, Class<T> t) {
-      return (T) this.param.get(key);
-    }
+		public synchronized <T> T getParam(String key, Class<T> t) {
+			return (T) this.param.get(key);
+		}
 
-    public void setParam(String key, Object value) {
-      this.param.put(key, value);
-    }
-  }
+		public void setParam(String key, Object value) {
+			this.param.put(key, value);
+		}
+	}
 }

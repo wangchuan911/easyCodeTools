@@ -86,6 +86,18 @@
       ],
       "resweb-v7": [
         "D:\\Workspaces\\intellij\\resweb\\src\\main\\webapp"
+      ],
+      "resgis": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-gis\\resgis-server\\target\\classes"
+      ],
+      "regis-intf": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-gis\\resgis-intf\\target\\classes"
+      ],
+      "biz-server": [
+        "D:\\Workspaces\\intellij\\V8\\res-biz\\biz-server\\target\\classes"
+      ],
+      "guangxiDXDeviceService": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\target\\classes"
       ]
     },
     "source": {
@@ -159,6 +171,21 @@
       ],
       "D:\\Workspaces\\Eclipse-O\\RS_AF\\bin": [
         "D:\\Workspaces\\Eclipse-O\\RS_AF\\src"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-gis\\resgis-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-gis\\resgis-server\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-gis\\resgis-server\\src\\main\\resources"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-gis\\resgis-intf\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-gis\\resgis-intf\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-biz\\biz-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-biz\\biz-server\\src\\main\\resources",
+        "D:\\Workspaces\\intellij\\V8\\res-biz\\biz-server\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\src\\main\\resources",
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\src\\main\\java"
       ]
     },
     "sourceToBuild": {

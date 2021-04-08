@@ -12,13 +12,12 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.common.template.TemplateEngine;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.TemplateHandler;
-import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
+import my.hehe.demo.common.HtmlTemplateUtils;
 import my.hehe.demo.common.annotation.Verticle;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.FilesDeploy;
 import my.hehe.demo.services.WebServiceClient;
 import org.apache.commons.lang.StringUtils;
-import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -35,20 +34,20 @@ public class WebVerticle extends AbstractVerticle {
 	JsonObject serverConfig = null;
 	boolean isClent = true;
 	boolean isServer = true;
+	TemplateEngine engine;
 
 	@Override
 	public void start(Promise<Void> startFuture) throws Exception {
 		Handler bodyHandler = BodyHandler.create();
-		TemplateEngine engine = createTemplateEngine(vertx);
 		serverConfig = config().getJsonObject("server");
 		isClent = serverConfig.getString("mode", "client").equals("client");
 		isServer = serverConfig.getString("mode", "server").equals("server");
 
-		TemplateHandler handler = TemplateHandler.create(engine);
 		FilesCatcher filesCatcher = FilesCatcher.createProxy(vertx);
 		FilesDeploy filesDeploy = FilesDeploy.createProxy(vertx);
 		Router router = Router.router(vertx);
-		router.get("/*").handler(handler);
+		this.engine = HtmlTemplateUtils.createTemplateEngine(this.vertx);
+		router.get("/*").handler(TemplateHandler.create(engine));
 		router.post("/catchFile").handler(bodyHandler).blockingHandler(routingContext -> {
 			HttpServerRequest httpServerRequest = routingContext.request();
 			Set<String> listSet = new HashSet<>();
@@ -56,14 +55,15 @@ public class WebVerticle extends AbstractVerticle {
 				MultiMap params = httpServerRequest.formAttributes();
 				String string = params.get("text");
 				if (StringUtil.isNullOrEmpty(string) || !isClent) {
-					engine.render(new JsonObject().put("msg", "fail!"), "templates/result.html", res -> {
+					/*htmlEngine.render(new JsonObject().put("msg", "fail!"), "templates/result.html", res -> {
 						if (res.succeeded()) {
 							routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
 						} else {
 							res.cause().printStackTrace();
 							routingContext.fail(res.cause());
 						}
-					});
+					});*/
+					this.goResultHtml(new JsonObject().put("msg", "fail!"), routingContext);
 					return;
 				}
 				try {
@@ -120,14 +120,15 @@ public class WebVerticle extends AbstractVerticle {
 				} else {
 					stringAsyncResult.cause().printStackTrace();
 //          routingContext.response().end("success!");
-					engine.render(new JsonObject().put("msg", stringAsyncResult.cause().getMessage()), "templates/result.html", res -> {
+					/*htmlEngine.render(, "templates/result.html", res -> {
 						if (res.succeeded()) {
 							routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
 						} else {
 							res.cause().printStackTrace();
 							routingContext.fail(res.cause());
 						}
-					});
+					});*/
+					HtmlTemplateUtils.goHtml(engine, new JsonObject().put("msg", stringAsyncResult.cause().getMessage()), routingContext, "result");
 				}
 			});
 		});
@@ -181,10 +182,10 @@ public class WebVerticle extends AbstractVerticle {
 						f.delete();
 					}
 				});
-				this.goResultHtml(engine, new JsonObject().put("msg", result.toString()), routingContext);
+				this.goResultHtml(new JsonObject().put("msg", result.toString()), routingContext);
 			});
 		}).failureHandler(routingContext -> {
-			this.goResultHtml(engine, new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
+			this.goResultHtml(new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
 		});
 
 		router.post("/wsdl").handler(bodyHandler).handler(routingContext -> {
@@ -216,7 +217,7 @@ public class WebVerticle extends AbstractVerticle {
 				routingContext.fail(e);
 			}
 		}).failureHandler(routingContext -> {
-			this.goResultHtml(engine, new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
+			this.goResultHtml(new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
 		});
 		int port = serverConfig.getJsonObject("port").getInteger("web");
 		vertx.createHttpServer().requestHandler(router).listen(port, http -> {
@@ -229,34 +230,9 @@ public class WebVerticle extends AbstractVerticle {
 		});
 	}
 
-	private void goResultHtml(TemplateEngine engine, JsonObject jsonObject, RoutingContext routingContext) {
-		goHtml(engine, jsonObject, routingContext, "result");
+	private void goResultHtml(JsonObject jsonObject, RoutingContext routingContext) {
+		HtmlTemplateUtils.goHtml(this.engine, jsonObject, routingContext, "result");
 	}
 
-	public static void goHtml(TemplateEngine engine, JsonObject jsonObject, RoutingContext routingContext, String page) {
-		engine.render(jsonObject, String.format("templates/%s.html", page), res -> {
-			if (res.succeeded()) {
-				routingContext.response().putHeader("Content-Type", "text/html").end(res.result());
-			} else {
-				res.cause().printStackTrace();
-				routingContext.fail(res.cause());
-			}
-		});
-	}
 
-	public static TemplateEngine createTemplateEngine(Vertx vertx) {
-		TemplateEngine engine = ThymeleafTemplateEngine.create(vertx);
-		{
-			// 定时模板解析器,表示从类加载路径下找模板
-			ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
-      /*// 设置模板的前缀，我们设置的是templates目录
-      templateResolver.setPrefix("templates");
-      // 设置后缀为.html文件
-      templateResolver.setSuffix(".html");*/
-			templateResolver.setTemplateMode("HTML5");
-			templateResolver.setCharacterEncoding("utf-8");
-			((ThymeleafTemplateEngine) engine).getThymeleafTemplateEngine().setTemplateResolver(templateResolver);
-		}
-		return engine;
-	}
 }

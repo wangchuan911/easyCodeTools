@@ -1,32 +1,44 @@
 package my.hehe.demo.services;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import my.hehe.demo.common.annotation.ReflectionUtils;
+import org.reflections.Reflections;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public abstract class WebSocketRunner {
-  public boolean urlCheck(String url) {
-    return false;
-  }
 
-  public abstract void start(String id, JsonObject config, ServerWebSocket serverWebSocket);
 
-  public abstract void done(ServerWebSocket serverWebSocket);
+	public abstract boolean open(ServerWebSocket serverWebSocket);
 
-  static class STATE {
-    final static int RUNNING;
-    final static int START;
-    final static int FAIL;
-    final static int FINISH;
+	public abstract void close(ServerWebSocket serverWebSocket);
 
-    static {
-      int code = 0;
-      RUNNING = code++;
-      START = code++;
-      FAIL = code++;
-      FINISH = code++;
-    }
+	public static Set<WebSocketRunner> init(Vertx vertx) {
+		JsonObject webSocketConfig = vertx.getOrCreateContext().config().getJsonObject("webSocket");
+		Reflections reflections = ReflectionUtils.getReflection();
+		Set<Class<? extends WebSocketRunner>> classes = reflections.getSubTypesOf(WebSocketRunner.class);
+		Set<WebSocketRunner> socketRunnerHashSet = classes.stream().map(aClass -> {
+			try {
+				return aClass.getConstructor(JsonObject.class).newInstance(webSocketConfig);
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+			return null;
+		}).collect(Collectors.toSet());
+		return socketRunnerHashSet;
+	}
 
-  }
 }
 
 

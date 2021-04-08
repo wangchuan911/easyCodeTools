@@ -21,14 +21,15 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class FilesCatcherImpl implements FilesCatcher {
-	private static FilesCatcher filesCatcher = new FilesCatcherImpl();
-
-	public static FilesCatcher getInstance() {
-		return filesCatcher;
-	}
+	private static FilesCatcherImpl filesCatcher;
 
 	public static FilesCatcher getInstance(JsonObject option) {
-		((FilesCatcherImpl) filesCatcher).setConfig(option);
+		if (filesCatcher == null) {
+			filesCatcher = new FilesCatcherImpl();
+			if (option != null) {
+				filesCatcher.setConfig(option);
+			}
+		}
 		return filesCatcher;
 	}
 
@@ -45,13 +46,9 @@ public class FilesCatcherImpl implements FilesCatcher {
 
 	}
 
-	public synchronized void setConfig(JsonObject config) {
-		if (confBuild == null && confSourse == null) {
-			confBuild = new JsonObject();
-			confSourse = new JsonObject();
-		} else {
-			return;
-		}
+	synchronized void setConfig(JsonObject config) {
+		confBuild = new JsonObject();
+		confSourse = new JsonObject();
 		tmpFilePath = config.getString("tmpFilePath");
 		JsonObject build = config.getJsonObject("build");
 		Set<String> keys = build.getMap().keySet();
