@@ -17,7 +17,6 @@ import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -191,9 +190,9 @@ public class FilesCatcherImpl implements FilesCatcher {
 				} else {
 					flow.next();
 				}
-			}).catchThen(asyncFlow -> {
+			}).fail(asyncFlow -> {
 				asyncFlow.printStackTrace();
-			}).finalThen(flow -> {
+			}).complete(flow -> {
 
 			});
 
@@ -215,7 +214,9 @@ public class FilesCatcherImpl implements FilesCatcher {
 		map.put("errorFile", new HashSet<String>());
 		map.put("fileList", fileList);
 		map.put("classSet", new HashSet<Class<? extends ResourceVO>>());
-		promiseFlow.start(map, flow -> {
+		promiseFlow.start(map, null, throwable -> {
+			promise.fail(throwable);
+		}, flow -> {
 			ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
 			File zipOfFile = flow.getParam(KEY_FIL_NAM, File.class);
 			//生成失败信息
@@ -226,9 +227,8 @@ public class FilesCatcherImpl implements FilesCatcher {
 			}
 			//关闭数据流
 			StreamUtils.close(zipOutputStream);
-			promise.complete(zipOfFile.getAbsolutePath());
-		}, throwable -> {
-			promise.fail(throwable);
+			if (!flow.isFail())
+				promise.complete(zipOfFile.getAbsolutePath());
 		});
 //		AsyncFlow.getInstance()
 //				.then("遍历文本，找文件", flow -> {
