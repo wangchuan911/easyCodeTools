@@ -215,9 +215,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 		map.put("errorFile", new HashSet<String>());
 		map.put("fileList", fileList);
 		map.put("classSet", new HashSet<Class<? extends ResourceVO>>());
-		promiseFlow.start(map, throwable -> {
-			promise.fail(throwable);
-		}, flow -> {
+		promiseFlow.start(map, flow -> {
 			ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
 			File zipOfFile = flow.getParam(KEY_FIL_NAM, File.class);
 			//生成失败信息
@@ -229,6 +227,8 @@ public class FilesCatcherImpl implements FilesCatcher {
 			//关闭数据流
 			StreamUtils.close(zipOutputStream);
 			promise.complete(zipOfFile.getAbsolutePath());
+		}, throwable -> {
+			promise.fail(throwable);
 		});
 //		AsyncFlow.getInstance()
 //				.then("遍历文本，找文件", flow -> {
