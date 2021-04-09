@@ -1,25 +1,29 @@
 package my.hehe.demo.common;
 
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
+import io.vertx.core.impl.future.CompositeFutureImpl;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class PromiseFlow {
 
 	static Vertx vertx = Vertx.vertx();
-	final PromiseFlow.FlowUnit head = new PromiseFlow.FlowUnit(this.size = 0, "start", null);
+	final PromiseFlow.FlowUnit head = new PromiseFlow.FlowUnit(this.size = 0, null, null);
 	int size;
 	Handler<FlowEndUnitState> finalHandler;
 	Handler<Throwable> throwHandler;
 
-	public PromiseFlow(Handler<FlowUnitState> handle) {
+	public PromiseFlow(String name, Handler<FlowUnitState> handle) {
 		this.head.handler = handle;
+		this.head.name = StringUtils.isEmpty(name) ? String.format("Step %d:%s", this.size, Thread.currentThread().getStackTrace()[1]) : name;
 		this.size = ++this.head.index;
 	}
 
-	public PromiseFlow() {
+	public PromiseFlow(Handler<FlowUnitState> handle) {
+		this(null, handle);
 	}
 
 	public PromiseFlow then(Handler<FlowUnitState> handle) {
@@ -33,13 +37,60 @@ public class PromiseFlow {
 		}
 		if (this.size == 0) {
 			idxUnit.handler = handle;
-			idxUnit.name = name;
+			idxUnit.name = StringUtils.isEmpty(name) ? String.format("Step %d:%s", this.size, Thread.currentThread().getStackTrace()[1]) : name;
 			idxUnit.index = ++this.size;
 		} else {
 			idxUnit.nextUnit = new PromiseFlow.FlowUnit(++this.size, name, handle);
 		}
 		return this;
 	}
+
+	public PromiseFlow allThen(String name, PromiseFlow... promiseFlows) {
+		return this.then(name, flowUnitState -> {
+			switch (promiseFlows.length) {
+				case 0:
+					flowUnitState.next();
+					break;
+				case 1:
+					promiseFlows[0].start(flowUnitState.param, throwable -> {
+						flowUnitState.fail(throwable);
+					}, flowEndUnitState -> {
+						flowUnitState.next();
+					});
+					break;
+				default:
+					CompositeFutureImpl
+							.all(Arrays
+									.stream(promiseFlows)
+									.map(promiseFlow ->
+											Future.future(promise1 -> {
+												promiseFlow.start(flowUnitState.param, throwable -> {
+													promise1.fail(throwable);
+												}, flowEndUnitState -> {
+													promise1.complete();
+												});
+											})).toArray(Future[]::new))
+							.onSuccess(compositeFuture -> {
+								flowUnitState.next();
+							})
+							.onFailure(throwable -> {
+								flowUnitState.fail(throwable);
+							});
+			}
+		});
+	}
+
+	public PromiseFlow switchThen(String name, Function<FlowUnitState, Integer> stateFunction, PromiseFlow... promiseFlows) {
+		return this.then(name, flowUnitState -> {
+			promiseFlows[stateFunction.apply(flowUnitState)]
+					.start(flowUnitState.param, throwable -> {
+						flowUnitState.fail(throwable);
+					}, flowEndUnitState -> {
+						flowUnitState.next();
+					});
+		});
+	}
+
 
 	public PromiseFlow catchThen(Handler<Throwable> throwableHandler) {
 		this.throwHandler = throwableHandler;
@@ -56,7 +107,27 @@ public class PromiseFlow {
 	}
 
 	public PromiseFlow.Flow start(Map<String, Object> params) {
-		PromiseFlow.Flow flow = new PromiseFlow.Flow(this.head, this.finalHandler, this.throwHandler);
+		PromiseFlow.Flow flow = new PromiseFlow.Flow(this.head, this.throwHandler, this.finalHandler);
+		flow.start(params);
+		return flow;
+	}
+
+	public PromiseFlow.Flow start(Map<String, Object> params, Handler<Throwable> throwHandler, Handler<FlowEndUnitState> finalHandler) {
+		PromiseFlow.Flow flow = new PromiseFlow.Flow(this.head, throwable -> {
+			if (this.throwHandler != null) {
+				this.throwHandler.handle(throwable);
+			}
+			if (throwHandler != null) {
+				throwHandler.handle(throwable);
+			}
+		}, flowEndUnitState -> {
+			if (this.finalHandler != null) {
+				this.finalHandler.handle(flowEndUnitState);
+			}
+			if (finalHandler != null) {
+				finalHandler.handle(flowEndUnitState);
+			}
+		});
 		flow.start(params);
 		return flow;
 	}
@@ -68,7 +139,7 @@ public class PromiseFlow {
 		Handler<FlowEndUnitState> finalHandler;
 		Handler<Throwable> throwHandler;
 
-		public Flow(FlowUnit head, Handler<FlowEndUnitState> finalHandler, Handler<Throwable> throwHandler) {
+		public Flow(FlowUnit head, Handler<Throwable> throwHandler, Handler<FlowEndUnitState> finalHandler) {
 			this.head = head;
 			this.finalHandler = finalHandler;
 			this.throwHandler = throwHandler;

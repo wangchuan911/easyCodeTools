@@ -1,6 +1,7 @@
 package my.hehe.demo.services.impl;
 
 import io.vertx.core.*;
+import io.vertx.core.impl.future.CompositeFutureImpl;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.*;
@@ -45,6 +46,9 @@ public class FilesCatcherImpl implements FilesCatcher {
 	private FilesCatcherImpl() {
 
 	}
+
+	final String KEY_ZIP_OS = "zipOutputStream";
+	final String KEY_FIL_NAM = "zipOfFile";
 
 	synchronized void setConfig(JsonObject config) {
 		confBuild = new JsonObject();
@@ -113,6 +117,85 @@ public class FilesCatcherImpl implements FilesCatcher {
 			return suffixSet.contains(suffix);
 		}
 	};
+	PromiseFlow promiseFlow =
+			new PromiseFlow("遍历文本，找文件", flow -> {
+				Set<String> fileList = flow.getParam("fileList", Set.class),
+						errorFile = flow.getParam("errorFile", Set.class),
+						simpleFiles = flow.getParam("simpleFiles", Set.class);
+				Set<ResourceVO> unSimpleFiles = flow.getParam("unSimpleFiles", Set.class);
+				Set<Class<? extends ResourceVO>> classSet = flow.getParam("classSet", Set.class);
+				fileList.stream().forEach(fileName -> {
+					if (typeCheckMethod == null) return;
+					ResourceVO resourceVO = null;
+					for (Method method : typeCheckMethod) {
+						try {
+							resourceVO = (ResourceVO) method.invoke(null, fileName);
+							if (resourceVO != null) {
+								unSimpleFiles.add(resourceVO);
+								classSet.add(resourceVO.getClass());
+								break;
+							}
+						} catch (Throwable e) {
+							e.printStackTrace();
+							errorFile.add(fileName + " " + e.getMessage());
+						}
+					}
+					if (resourceVO == null) {
+						getFile(simpleFiles, errorFile, fileName);
+					}
+				});
+				flow.next();
+			}).then("创建zip文件", flow -> {
+				try {
+					File zipOfFile = this.careateZipFile();
+					ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
+					flow.setParam(KEY_FIL_NAM, zipOfFile);
+					flow.setParam(KEY_ZIP_OS, zipOutputStream);
+				} catch (Exception e) {
+					flow.fail(e);
+				}
+				flow.next();
+			}).then("把一般文件压缩到zip文件中", flow -> {
+				Set<String> simpleFiles = flow.getParam("simpleFiles", Set.class),
+						errorFile = flow.getParam("errorFile", Set.class);
+				if (simpleFiles.size() > 0) {
+					ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+					this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
+				}
+				flow.next();
+			}).then("把特殊文件压缩到zip文件中", flow -> {
+				Set<ResourceVO> unSimpleFiles = flow.getParam("unSimpleFiles", Set.class);
+				Set<String> errorFile = flow.getParam("errorFile", Set.class);
+				if (unSimpleFiles.size() > 0 && typeZipMethod.size() > 0) {
+					ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+					CompositeFutureImpl
+							.all(typeZipMethod
+									.stream()
+									.map(method ->
+											Future.future(promise1 -> {
+												try {
+													method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
+														promise1.complete();
+													});
+												} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+													promise1.fail(e);
+												}
+											}))
+									.toArray(Future[]::new))
+							.onSuccess(compositeFuture -> {
+								flow.next();
+							})
+							.onFailure(throwable -> {
+								flow.fail(throwable);
+							});
+				} else {
+					flow.next();
+				}
+			}).catchThen(asyncFlow -> {
+				asyncFlow.printStackTrace();
+			}).finalThen(flow -> {
+
+			});
 
 	@Override
 	public void dual(Set<String> fileList, Handler<AsyncResult<String>> outputBodyHandler) {
@@ -121,112 +204,132 @@ public class FilesCatcherImpl implements FilesCatcher {
 		if (fileList == null || fileList.size() == 0) {
 			promise.fail(new NullPointerException());
 		}
-		final String KEY_ZIP_OS = "zipOutputStream";
-		final String KEY_FIL_NAM = "zipOfFile";
-		final Set<String> simpleFiles = new HashSet<>();
+		/*final Set<String> simpleFiles = new HashSet<>();
 		final Set<ResourceVO> unSimpleFiles = new HashSet<>();
 		final Set<String> errorFile = new HashSet<>();
-		final Set<Class<? extends ResourceVO>> classSet = new HashSet<>();
-		AsyncFlow.getInstance()
-				.then("遍历文本，找文件", flow -> {
-					fileList.stream().forEach(fileName -> {
-						if (typeCheckMethod == null) return;
-						ResourceVO resourceVO = null;
-						for (Method method : typeCheckMethod) {
-							try {
-								resourceVO = (ResourceVO) method.invoke(null, fileName);
-								if (resourceVO != null) {
-									unSimpleFiles.add(resourceVO);
-									classSet.add(resourceVO.getClass());
-									break;
-								}
-							} catch (Throwable e) {
-								e.printStackTrace();
-								errorFile.add(fileName + " " + e.getMessage());
-							}
-						}
-						if (resourceVO == null) {
-							getFile(simpleFiles, errorFile, fileName);
-						}
-					});
-					flow.next();
-				}).then("创建zip文件", flow -> {
-			try {
-				File zipOfFile = this.careateZipFile();
-				ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
-				flow.setParam(KEY_FIL_NAM, zipOfFile);
-				flow.setParam(KEY_ZIP_OS, zipOutputStream);
-			} catch (Exception e) {
-				flow.fail(e);
-			}
-			flow.next();
-		}).then("把一般文件压缩到zip文件中", flow -> {
-			if (simpleFiles.size() > 0) {
-				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
-				this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
-			}
-			flow.next();
-		}).then("把特殊文件压缩到zip文件中", flow -> {
-			/*if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
-				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
-				AtomicInteger atomicInteger = new AtomicInteger(classSet.size());
-				for (Method method : typeZipMethod) {
-					try {
-						method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
-							if (atomicInteger.decrementAndGet() == 0) {
-								flow.next();
-							}
-						});
-					} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-						flow.fail(e);
-						return;
-					}
-				}
-			} else {
-				flow.next();
-			}*/
-			if (unSimpleFiles.size() > 0 && typeZipMethod.size() > 0) {
-				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
-				CompositeFuture
-						.all(typeZipMethod
-								.stream()
-								.map(method ->
-										Future.future(promise1 -> {
-											try {
-												method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
-													promise1.complete();
-												});
-											} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-												promise1.fail(e);
-											}
-										}))
-								.collect(Collectors.toList()))
-						.onSuccess(compositeFuture -> {
-							flow.next();
-						})
-						.onFailure(throwable -> {
-							flow.fail(throwable);
-						});
-			} else {
-				flow.next();
-			}
-		}).catchThen(asyncFlow -> {
-			asyncFlow.printStackTrace();
-			promise.fail(asyncFlow);
-		}).finalThen(flow -> {
-			ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
-			File zipOfFile = (File) flow.getParam().get(KEY_FIL_NAM);
+		final Set<Class<? extends ResourceVO>> classSet = new HashSet<>();*/
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("simpleFiles", new HashSet<String>());
+		map.put("unSimpleFiles", new HashSet<ResourceVO>());
+		map.put("errorFile", new HashSet<String>());
+		map.put("fileList", fileList);
+		map.put("classSet", new HashSet<Class<? extends ResourceVO>>());
+		promiseFlow.start(map, throwable -> {
+			promise.fail(throwable);
+		}, flow -> {
+			ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+			File zipOfFile = flow.getParam(KEY_FIL_NAM, File.class);
 			//生成失败信息
 			try {
-				this.createFailFile(errorFile, zipOutputStream);
+				this.createFailFile(flow.getParam("errorFile", Set.class), zipOutputStream);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 			//关闭数据流
-			this.close(zipOutputStream);
-			if (!flow.isError())
-				promise.complete(zipOfFile.getAbsolutePath());
-		}).start();
+			StreamUtils.close(zipOutputStream);
+			promise.complete(zipOfFile.getAbsolutePath());
+		});
+//		AsyncFlow.getInstance()
+//				.then("遍历文本，找文件", flow -> {
+//					fileList.stream().forEach(fileName -> {
+//						if (typeCheckMethod == null) return;
+//						ResourceVO resourceVO = null;
+//						for (Method method : typeCheckMethod) {
+//							try {
+//								resourceVO = (ResourceVO) method.invoke(null, fileName);
+//								if (resourceVO != null) {
+//									unSimpleFiles.add(resourceVO);
+//									classSet.add(resourceVO.getClass());
+//									break;
+//								}
+//							} catch (Throwable e) {
+//								e.printStackTrace();
+//								errorFile.add(fileName + " " + e.getMessage());
+//							}
+//						}
+//						if (resourceVO == null) {
+//							getFile(simpleFiles, errorFile, fileName);
+//						}
+//					});
+//					flow.next();
+//				}).then("创建zip文件", flow -> {
+//			try {
+//				File zipOfFile = this.careateZipFile();
+//				ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipOfFile));
+//				flow.setParam(KEY_FIL_NAM, zipOfFile);
+//				flow.setParam(KEY_ZIP_OS, zipOutputStream);
+//			} catch (Exception e) {
+//				flow.fail(e);
+//			}
+//			flow.next();
+//		}).then("把一般文件压缩到zip文件中", flow -> {
+//			if (simpleFiles.size() > 0) {
+//				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+//				this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
+//			}
+//			flow.next();
+//		}).then("把特殊文件压缩到zip文件中", flow -> {
+//			/*if (unSimpleFiles.size() > 0 && typeZipMethod != null) {
+//				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+//				AtomicInteger atomicInteger = new AtomicInteger(classSet.size());
+//				for (Method method : typeZipMethod) {
+//					try {
+//						method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
+//							if (atomicInteger.decrementAndGet() == 0) {
+//								flow.next();
+//							}
+//						});
+//					} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+//						flow.fail(e);
+//						return;
+//					}
+//				}
+//			} else {
+//				flow.next();
+//			}*/
+//			if (unSimpleFiles.size() > 0 && typeZipMethod.size() > 0) {
+//				ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+//				CompositeFuture
+//						.all(typeZipMethod
+//								.stream()
+//								.map(method ->
+//										Future.future(promise1 -> {
+//											try {
+//												method.invoke(null, zipOutputStream, unSimpleFiles, errorFile, (Handler<Void>) aVoid -> {
+//													promise1.complete();
+//												});
+//											} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+//												promise1.fail(e);
+//											}
+//										}))
+//								.collect(Collectors.toList()))
+//						.onSuccess(compositeFuture -> {
+//							flow.next();
+//						})
+//						.onFailure(throwable -> {
+//							flow.fail(throwable);
+//						});
+//			} else {
+//				flow.next();
+//			}
+//		}).catchThen(asyncFlow -> {
+//			asyncFlow.printStackTrace();
+//			promise.fail(asyncFlow);
+//		}).finalThen(flow -> {
+//			ZipOutputStream zipOutputStream = (ZipOutputStream) flow.getParam().get(KEY_ZIP_OS);
+//			File zipOfFile = (File) flow.getParam().get(KEY_FIL_NAM);
+//			//生成失败信息
+//			try {
+//				this.createFailFile(errorFile, zipOutputStream);
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//			//关闭数据流
+//			this.close(zipOutputStream);
+//			if (!flow.isError())
+//				promise.complete(zipOfFile.getAbsolutePath());
+//		}).start();
 	}
 
 	private File careateZipFile() {
