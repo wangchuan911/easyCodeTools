@@ -191,7 +191,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 					flow.next();
 				}
 			}).fail(asyncFlow -> {
-				asyncFlow.printStackTrace();
+				asyncFlow.cause().printStackTrace();
 			}).complete(flow -> {
 
 			});
@@ -215,7 +215,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 		map.put("fileList", fileList);
 		map.put("classSet", new HashSet<Class<? extends ResourceVO>>());
 		promiseFlow.start(map, null, throwable -> {
-			promise.fail(throwable);
+			promise.fail(throwable.cause());
 		}, flow -> {
 			ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
 			File zipOfFile = flow.getParam(KEY_FIL_NAM, File.class);
@@ -365,7 +365,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 					: fileName;
 			for (String source : pathsSourse) {
 				if (fileName.indexOf(source) == 0) {
-					Object value = null;
+				Object value = null;
 					if ((value = confSourse.getValue(source)) instanceof JsonArray) {
 						JsonArray jsonArray = (JsonArray) value;
 						fileName = jsonArray.stream().map(o ->
@@ -379,8 +379,8 @@ public class FilesCatcherImpl implements FilesCatcher {
 						fileName = tmpFileName.replace(source, confSourse.getString(source));
 						break;
 					}
-				}
 			}
+		}
 			System.out.println(fileName);
 		}
 		return fileName;
@@ -414,8 +414,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 
 	private void getFileSub(Set<String> simpleFiles, Set<String> errorFile, File rootFile, String[] files) {
 		for (int i = 0; i < files.length; i++) {
-			String subFileName = new StringBuilder(rootFile.getAbsolutePath()).append(File.separator).append(files[i]).toString();
-			subFileName = fileNameCheck(subFileName);
+			String subFileName = fileNameCheck(new StringBuilder(rootFile.getAbsolutePath()).append(File.separator).append(files[i]).toString());
 			File subFile = new File(subFileName);
 			if (!subFile.canRead()) {
 				errorFile.add(subFileName);

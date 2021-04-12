@@ -12,42 +12,41 @@ public class PromiseFlow {
 	static Vertx vertx = Vertx.vertx();
 	final PromiseFlow.FlowUnit head = new PromiseFlow.FlowUnit(this.size = 0, null, null, null);
 	int size;
-	Handler<FlowEndUnitState> complete;
-	Handler<Throwable> fail;
-	Handler<FlowEndUnitState> success;
+	SuccessHandler success, complete;
+	FailHandler fail;
 
-	public PromiseFlow(String name, Handler<FlowUnitState> resolve, Handler<Throwable> reject) {
+	public PromiseFlow(String name, ResolveHandler resolve, RejectAndRetryHandler reject) {
 		this.head.resolve = resolve;
 		this.head.reject = reject;
 		this.head.name = StringUtils.isEmpty(name) ? String.format("Step %d:%s", this.size, Thread.currentThread().getStackTrace()[1]) : name;
 		this.size = ++this.head.index;
 	}
 
-	public PromiseFlow(String name, Handler<FlowUnitState> resolve) {
+	public PromiseFlow(String name, ResolveHandler resolve) {
 		this(name, resolve, null);
 	}
 
-	public PromiseFlow(Handler<FlowUnitState> resolve, Handler<Throwable> reject) {
+	public PromiseFlow(ResolveHandler resolve, RejectAndRetryHandler reject) {
 		this(null, resolve, reject);
 	}
 
-	public PromiseFlow(Handler<FlowUnitState> handle) {
+	public PromiseFlow(ResolveHandler handle) {
 		this(null, handle, null);
 	}
 
-	public PromiseFlow then(Handler<FlowUnitState> resolve, Handler<Throwable> reject) {
+	public PromiseFlow then(ResolveHandler resolve, RejectAndRetryHandler reject) {
 		return this.then(null, resolve, reject);
 	}
 
-	public PromiseFlow then(Handler<FlowUnitState> resolve) {
+	public PromiseFlow then(ResolveHandler resolve) {
 		return this.then(null, resolve, null);
 	}
 
-	public PromiseFlow then(String name, Handler<FlowUnitState> resolve) {
+	public PromiseFlow then(String name, ResolveHandler resolve) {
 		return this.then(name, resolve, null);
 	}
 
-	public PromiseFlow then(String name, Handler<FlowUnitState> resolve, Handler<Throwable> reject) {
+	public PromiseFlow then(String name, ResolveHandler resolve, RejectAndRetryHandler reject) {
 		PromiseFlow.FlowUnit idxUnit = this.head;
 		for (int i = 0; i < this.size - 1; i++) {
 			idxUnit = idxUnit.nextUnit;
@@ -72,7 +71,7 @@ public class PromiseFlow {
 					promiseFlows[0].start(flowUnitState.param, flowEndUnitState -> {
 						flowUnitState.next();
 					}, throwable -> {
-						flowUnitState.fail(throwable);
+						flowUnitState.fail(throwable.cause());
 					});
 					break;
 				default:
@@ -84,7 +83,7 @@ public class PromiseFlow {
 												promiseFlow.start(flowUnitState.param, flowEndUnitState -> {
 													promise1.complete();
 												}, throwable -> {
-													promise1.fail(throwable);
+													promise1.fail(throwable.cause());
 												});
 											})).toArray(Future[]::new))
 							.onSuccess(compositeFuture -> {
@@ -103,23 +102,23 @@ public class PromiseFlow {
 					.start(flowUnitState.param, flowEndUnitState -> {
 						flowUnitState.next();
 					}, throwable -> {
-						flowUnitState.fail(throwable);
+						flowUnitState.fail(throwable.cause());
 					});
 		});
 	}
 
 
-	public PromiseFlow fail(Handler<Throwable> fail) {
+	public PromiseFlow fail(FailHandler fail) {
 		this.fail = fail;
 		return this;
 	}
 
-	public PromiseFlow complete(Handler<FlowEndUnitState> complete) {
+	public PromiseFlow complete(SuccessHandler complete) {
 		this.complete = complete;
 		return this;
 	}
 
-	public PromiseFlow success(Handler<FlowEndUnitState> success) {
+	public PromiseFlow success(SuccessHandler success) {
 		this.success = success;
 		return this;
 	}
@@ -134,11 +133,11 @@ public class PromiseFlow {
 		return flow;
 	}
 
-	public PromiseFlow.Flow start(Map<String, Object> params, Handler<FlowEndUnitState> success, Handler<Throwable> fail) {
+	public PromiseFlow.Flow start(Map<String, Object> params, Handler<FlowEndUnitState> success, FailHandler fail) {
 		return this.start(params, success, fail, null);
 	}
 
-	public PromiseFlow.Flow start(Map<String, Object> params, Handler<FlowEndUnitState> success, Handler<Throwable> fail, Handler<FlowEndUnitState> complete) {
+	public PromiseFlow.Flow start(Map<String, Object> params, Handler<FlowEndUnitState> success, FailHandler fail, Handler<FlowEndUnitState> complete) {
 		PromiseFlow.Flow flow = new PromiseFlow.Flow(this.head, flowEndUnitState -> {
 			if (this.success != null) {
 				this.success.handle(flowEndUnitState);
@@ -169,44 +168,53 @@ public class PromiseFlow {
 	public class Flow {
 		PromiseFlow.FlowUnit head;
 		STATE state = STATE.PREPARE;
-		Handler<FlowEndUnitState> success;
-		Handler<FlowEndUnitState> complete;
-		Handler<Throwable> fail;
+		SuccessHandler success, complete;
+		FailHandler fail;
 
-		public Flow(FlowUnit head, Handler<FlowEndUnitState> success, Handler<Throwable> fail, Handler<FlowEndUnitState> complete) {
+		public Flow(FlowUnit head, SuccessHandler success, FailHandler fail, SuccessHandler complete) {
 			this.head = head;
 			this.success = success;
 			this.complete = complete;
 			this.fail = fail;
 		}
 
-		void execute(PromiseFlow.FlowUnit flowUnit, Map<String, Object> params) {
+		void execute(final PromiseFlow.FlowUnit flowUnit, final Map<String, Object> params) {
 			this.isRuning(true);
 			if (flowUnit == null) {
 				this.end(STATE.FINISH, params);
 				return;
 			}
 			vertx.executeBlocking(promise -> {
-				flowUnit.handle(new FlowUnitState(promise, params));
+				try {
+					flowUnit.handle(new FlowUnitState(promise, params));
+				} catch (Throwable throwable) {
+					promise.fail(throwable);
+				}
 			}, asyncResult -> {
 				if (asyncResult.succeeded()) {
 					this.execute(flowUnit.nextUnit, params);
-					return;
 				} else {
 					if (flowUnit.reject != null) {
-						try {
-							flowUnit.reject.handle(asyncResult.cause());
-							this.execute(flowUnit.nextUnit, params);
-							return;
-						} catch (RuntimeException e) {
-							if (this.fail != null)
-								this.fail.handle(e);
-						}
+						vertx.executeBlocking(promise -> {
+							try {
+								flowUnit.reject.handle(new FlowRejectUnitState(promise, params, asyncResult.cause()));
+							} catch (Throwable e) {
+								promise.fail(e);
+							}
+						}, asyncResult1 -> {
+							if (asyncResult1.succeeded()) {
+								this.execute(flowUnit.nextUnit, params);
+							} else {
+								if (this.fail != null)
+									this.fail.handle(new FlowFailEndUnitState(params, asyncResult1.cause()));
+								this.end(STATE.FAIL, params);
+							}
+						});
 					} else {
 						if (this.fail != null)
-							this.fail.handle(asyncResult.cause());
+							this.fail.handle(new FlowFailEndUnitState(params, asyncResult.cause()));
+						this.end(STATE.FAIL, params);
 					}
-					this.end(STATE.FAIL, params);
 				}
 			});
 		}
@@ -274,7 +282,7 @@ public class PromiseFlow {
 		}
 	}
 
-	public final class FlowEndUnitState extends FlowUnitState {
+	public class FlowEndUnitState extends FlowUnitState {
 		boolean isFail;
 
 		FlowEndUnitState(Map<String, Object> param) {
@@ -333,14 +341,41 @@ public class PromiseFlow {
 		}
 	}
 
+	public final class FlowFailEndUnitState extends FlowEndUnitState {
+		Throwable throwable;
+
+		FlowFailEndUnitState(Map<String, Object> param, Throwable throwable) {
+			super(param);
+			this.throwable = throwable;
+		}
+
+		public Throwable cause() {
+			return this.throwable;
+		}
+	}
+
+	public class FlowRejectUnitState extends FlowUnitState {
+		Throwable throwable;
+
+		FlowRejectUnitState(Promise promise, Map<String, Object> param, Throwable throwable) {
+			super(promise, param);
+			this.throwable = throwable;
+		}
+
+		public Throwable cause() {
+			return this.throwable;
+		}
+
+	}
+
 	class FlowUnit {
 		int index;
 		String name;
-		Handler<FlowUnitState> resolve;
-		Handler<Throwable> reject;
+		ResolveHandler resolve;
+		RejectAndRetryHandler reject;
 		PromiseFlow.FlowUnit nextUnit;
 
-		FlowUnit(int index, String name, Handler<FlowUnitState> resolve, Handler<Throwable> reject) {
+		FlowUnit(int index, String name, ResolveHandler resolve, RejectAndRetryHandler reject) {
 			this.name = name;
 			this.resolve = resolve;
 			this.reject = reject;
@@ -351,7 +386,7 @@ public class PromiseFlow {
 			return name;
 		}
 
-		void handle(FlowUnitState flowUnitState) {
+		void handle(FlowUnitState flowUnitState) throws Throwable {
 			this.resolve.handle(flowUnitState);
 		}
 
@@ -365,17 +400,19 @@ public class PromiseFlow {
 	}).then(flowUnit -> {
 		System.out.println(flowUnit.toString());
 		System.out.println(2);
-		String a = null;
-		a.toString();
+		/*String a = null;
+		a.toString();*/
 		flowUnit.next();
-	}, throwable -> {
+	}, (flowUnitState) -> {
 		System.out.println("skip");
+		flowUnitState.cause().printStackTrace();
+		flowUnitState.next();
 	}).then(flowUnit -> {
 		System.out.println(flowUnit.toString());
 		System.out.println(3);
 		flowUnit.next();
 	}).fail(throwable -> {
-		throwable.printStackTrace();
+		throwable.cause().printStackTrace();
 	}).complete(promiseFlow -> {
 		System.out.println("fin");
 	});
@@ -401,5 +438,24 @@ public class PromiseFlow {
 		}
 	}
 
+	@FunctionalInterface
+	public interface RejectAndRetryHandler {
+		void handle(FlowRejectUnitState flowRejectUnitState) throws Throwable;
+	}
 
+	@FunctionalInterface
+	public interface ResolveHandler {
+		void handle(PromiseFlow.FlowUnitState flowUnitState) throws Throwable;
+	}
+
+	@FunctionalInterface
+	public interface SuccessHandler {
+		void handle(PromiseFlow.FlowEndUnitState flowUnitState);
+	}
+
+	@FunctionalInterface
+	public interface FailHandler {
+		void handle(PromiseFlow.FlowFailEndUnitState flowUnitState);
+	}
 }
+
