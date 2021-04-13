@@ -354,17 +354,13 @@ public class FilesCatcherImpl implements FilesCatcher {
 		System.out.println(fileName);
 		String newFileName = fileName;
 		if (pathsSourse.size() != 0 && sourceToBuild.size() != 0) {
-			String prefix = null;
-			String str;
-			for (Iterator<Object> iterator = sourceToBuild.keySet().iterator(); iterator.hasNext(); ) {
-				str = iterator.next().toString();
-				if ((fileName.lastIndexOf(str) + str.length() == fileName.length())) {
-					prefix = str;
-				}
+			String tmpFileName, suffix;
+			int lastIndexOf = fileName.lastIndexOf(".");
+			if (lastIndexOf > 0 && sourceToBuild.containsKey(suffix = fileName.substring(lastIndexOf))) {
+				tmpFileName = fileName.replace(suffix, sourceToBuild.get(suffix).toString());
+			} else {
+				tmpFileName = fileName;
 			}
-			String tmpFileName = StringUtils.isNotEmpty(prefix)
-					? fileName.replace(prefix, sourceToBuild.get(prefix).toString())
-					: fileName;
 			Optional<String> optional = pathsSourse.stream().filter(source -> fileName.indexOf(source) == 0).findFirst();
 			if (optional.isPresent()) {
 				Object value;
