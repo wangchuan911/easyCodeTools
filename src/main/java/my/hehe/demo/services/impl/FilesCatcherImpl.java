@@ -349,41 +349,40 @@ public class FilesCatcherImpl implements FilesCatcher {
 		return file;
 	}
 
-	private String fileNameCheck(String fileName) {
+	private String fileNameCheck(final String fileName) {
+		System.out.println("-------------------------------------------------------");
+		System.out.println(fileName);
+		String newFileName = fileName;
 		if (pathsSourse.size() != 0 && sourceToBuild.size() != 0) {
 			String prefix = null;
-			for (Object object : sourceToBuild.keySet()) {
-				String str = object.toString();
+			String str;
+			for (Iterator<Object> iterator = sourceToBuild.keySet().iterator(); iterator.hasNext(); ) {
+				str = iterator.next().toString();
 				if ((fileName.lastIndexOf(str) + str.length() == fileName.length())) {
 					prefix = str;
 				}
 			}
-			System.out.print(fileName);
-			System.out.print("->");
-			final String tmpFileName = StringUtils.isNotEmpty(prefix)
+			String tmpFileName = StringUtils.isNotEmpty(prefix)
 					? fileName.replace(prefix, sourceToBuild.get(prefix).toString())
 					: fileName;
-			for (String source : pathsSourse) {
-				if (fileName.indexOf(source) == 0) {
-				Object value = null;
-					if ((value = confSourse.getValue(source)) instanceof JsonArray) {
-						JsonArray jsonArray = (JsonArray) value;
-						fileName = jsonArray.stream().map(o ->
-								new File(tmpFileName.replace(source, o.toString()))
+			Optional<String> optional = pathsSourse.stream().filter(source -> fileName.indexOf(source) == 0).findFirst();
+			if (optional.isPresent()) {
+				Object value;
+				newFileName = (value = confSourse.getValue(optional.get())) instanceof JsonArray ?
+						((JsonArray) value).stream().map(o ->
+								new File(tmpFileName.replace(optional.get(), o.toString()))
 						).filter(file -> file.exists())
 								.max((o1, o2) -> (o1.lastModified() > o2.lastModified() ? 1 : -1))
 								.get()
-								.getAbsolutePath();
-						break;
-					} else {
-						fileName = tmpFileName.replace(source, confSourse.getString(source));
-						break;
-					}
+								.getAbsolutePath()
+						:
+						tmpFileName.replace(optional.get(), confSourse.getString(optional.get()));
+				System.out.println("==========>");
+				System.out.println(newFileName);
 			}
 		}
-			System.out.println(fileName);
-		}
-		return fileName;
+
+		return newFileName;
 	}
 
 	private void getFile(Set<String> simpleFiles, Set<String> errorFile, String fileName) {

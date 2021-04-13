@@ -96,7 +96,7 @@ public class PromiseFlow {
 		});
 	}
 
-	public PromiseFlow switchThen(String name, Function<FlowUnitState, Integer> stateFunction, PromiseFlow... promiseFlows) {
+	public PromiseFlow switchThen(String name, SwitchHandler stateFunction, PromiseFlow... promiseFlows) {
 		return this.then(name, flowUnitState -> {
 			promiseFlows[stateFunction.apply(flowUnitState)]
 					.start(flowUnitState.param, flowEndUnitState -> {
@@ -456,6 +456,10 @@ public class PromiseFlow {
 	@FunctionalInterface
 	public interface FailHandler {
 		void handle(PromiseFlow.FlowFailEndUnitState flowUnitState);
+	}
+	@FunctionalInterface
+	public interface SwitchHandler {
+		int apply(PromiseFlow.FlowUnitState flowUnitState);
 	}
 }
 
