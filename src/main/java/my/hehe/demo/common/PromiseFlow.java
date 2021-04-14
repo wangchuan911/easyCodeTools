@@ -12,7 +12,8 @@ public class PromiseFlow {
 	static Vertx vertx = Vertx.vertx();
 	final PromiseFlow.FlowUnit head = new PromiseFlow.FlowUnit(this.size = 0, null, null, null);
 	int size;
-	SuccessHandler success, complete;
+	SuccessHandler success;
+	CompleteHandler complete;
 	FailHandler fail;
 
 	public PromiseFlow(String name, ResolveHandler resolve, RejectAndRetryHandler reject) {
@@ -113,7 +114,7 @@ public class PromiseFlow {
 		return this;
 	}
 
-	public PromiseFlow complete(SuccessHandler complete) {
+	public PromiseFlow complete(CompleteHandler complete) {
 		this.complete = complete;
 		return this;
 	}
@@ -168,10 +169,11 @@ public class PromiseFlow {
 	public class Flow {
 		PromiseFlow.FlowUnit head;
 		STATE state = STATE.PREPARE;
-		SuccessHandler success, complete;
+		SuccessHandler success;
+		CompleteHandler complete;
 		FailHandler fail;
 
-		public Flow(FlowUnit head, SuccessHandler success, FailHandler fail, SuccessHandler complete) {
+		public Flow(FlowUnit head, SuccessHandler success, FailHandler fail, CompleteHandler complete) {
 			this.head = head;
 			this.success = success;
 			this.complete = complete;
@@ -454,9 +456,16 @@ public class PromiseFlow {
 	}
 
 	@FunctionalInterface
+	public interface CompleteHandler extends SuccessHandler {
+
+	}
+
+
+	@FunctionalInterface
 	public interface FailHandler {
 		void handle(PromiseFlow.FlowFailEndUnitState flowUnitState);
 	}
+
 	@FunctionalInterface
 	public interface SwitchHandler {
 		int apply(PromiseFlow.FlowUnitState flowUnitState);
