@@ -12,14 +12,14 @@ import java.util.function.Function;
  * @Author wang.zhidong
  * @Date 2021/5/26 10:24
  */
-public abstract class AbstractFlow implements IFlow {
+public abstract class AbstractFlow<T extends AbstractFlow> implements IFlow {
 
 	public static class FlowUnit {
 		int index;
 		String name;
 		IFlow.ResolveHandler resolve;
 		IFlow.RejectAndRetryHandler reject;
-		PromiseFlow.FlowUnit nextUnit;
+		FlowUnit nextUnit;
 
 		FlowUnit(int index, String name, IFlow.ResolveHandler resolve, IFlow.RejectAndRetryHandler reject) {
 			this.name = name;
@@ -42,8 +42,8 @@ public abstract class AbstractFlow implements IFlow {
 
 
 		@Override
-		public <T> T getParam(String key) {
-			return (T) this.param.get(key);
+		public <V> V getParam(String key) {
+			return (V) this.param.get(key);
 		}
 
 		@Override
@@ -55,24 +55,24 @@ public abstract class AbstractFlow implements IFlow {
 	}
 
 
-	public abstract AbstractFlow then(ResolveHandler resolve, RejectAndRetryHandler reject);
+	public abstract T then(ResolveHandler resolve, RejectAndRetryHandler reject);
 
-	public abstract AbstractFlow then(ResolveHandler resolve);
+	public abstract T then(ResolveHandler resolve);
 
-	public abstract AbstractFlow then(String name, ResolveHandler resolve);
+	public abstract T then(String name, ResolveHandler resolve);
 
-	public abstract AbstractFlow then(String name, ResolveHandler resolve, RejectAndRetryHandler reject);
+	public abstract T then(String name, ResolveHandler resolve, RejectAndRetryHandler reject);
 
-	public abstract AbstractFlow allThen(String name, PromiseFlow... promiseFlows);
+	public abstract T allThen(String name, T... flows);
 
-	public abstract AbstractFlow switchThen(String name, SwitchHandler stateFunction, PromiseFlow... promiseFlows);
+	public abstract T switchThen(String name, SwitchHandler stateFunction, T... flows);
 
 
-	public abstract AbstractFlow fail(FailHandler fail);
+	public abstract T fail(FailHandler fail);
 
-	public abstract AbstractFlow complete(CompleteHandler complete);
+	public abstract T complete(CompleteHandler complete);
 
-	public abstract AbstractFlow success(SuccessHandler success);
+	public abstract T success(SuccessHandler success);
 
 	public abstract AbstractFlowStream start();
 
@@ -84,8 +84,8 @@ public abstract class AbstractFlow implements IFlow {
 
 
 	public abstract class AbstractFlowStream {
-		PromiseFlow.FlowUnit head;
-		PromiseFlow.STATE state = PromiseFlow.STATE.PREPARE;
+		FlowUnit head;
+		STATE state = STATE.PREPARE;
 		SuccessHandler success;
 		CompleteHandler complete;
 		FailHandler fail;
@@ -97,9 +97,9 @@ public abstract class AbstractFlow implements IFlow {
 			this.fail = fail;
 		}
 
-		abstract void execute(final PromiseFlow.FlowUnit flowUnit, final Map<String, Object> params);
+		abstract void execute(final FlowUnit flowUnit, final Map<String, Object> params);
 
-		void end(PromiseFlow.STATE state, Map<String, Object> params) {
+		void end(STATE state, Map<String, Object> params) {
 			this.isRuning(true);
 			this.state = state;
 			IFlowEndUnitState complete = getFlowEndUnitState().apply(params);
@@ -118,7 +118,7 @@ public abstract class AbstractFlow implements IFlow {
 			}
 		}
 
-		abstract Function<Map<String,Object>,IFlowEndUnitState> getFlowEndUnitState();
+		abstract Function<Map<String, Object>, IFlowEndUnitState> getFlowEndUnitState();
 
 		public void start() {
 			this.start(null);
@@ -126,12 +126,12 @@ public abstract class AbstractFlow implements IFlow {
 
 		public void start(Map<String, Object> params) {
 			this.isPrepare(true);
-			state = PromiseFlow.STATE.RUNING;
+			state = STATE.RUNING;
 			execute(this.head, params == null ? new HashMap<>() : params);
 		}
 
 		boolean isPrepare(boolean throwbale) {
-			if (this.state.code != PromiseFlow.STATE.PREPARE.code) {
+			if (this.state.code != STATE.PREPARE.code) {
 				if (throwbale) throw new RuntimeException("not Prepare");
 				return false;
 			}
@@ -139,7 +139,7 @@ public abstract class AbstractFlow implements IFlow {
 		}
 
 		boolean isRuning(boolean throwbale) {
-			if (this.state.code != PromiseFlow.STATE.RUNING.code) {
+			if (this.state.code != STATE.RUNING.code) {
 				if (throwbale) throw new RuntimeException("not Running");
 				return false;
 			}
@@ -155,11 +155,11 @@ public abstract class AbstractFlow implements IFlow {
 		}
 
 		public boolean isComplete() {
-			return this.state == PromiseFlow.STATE.FINISH;
+			return this.state == STATE.FINISH;
 		}
 
 		public boolean isError() {
-			return this.state == PromiseFlow.STATE.FAIL;
+			return this.state == STATE.FAIL;
 		}
 	}
 }

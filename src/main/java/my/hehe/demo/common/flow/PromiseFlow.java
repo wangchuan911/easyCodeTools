@@ -7,7 +7,7 @@ import org.apache.commons.lang.StringUtils;
 import java.util.*;
 import java.util.function.Function;
 
-public class PromiseFlow extends AbstractFlow {
+public class PromiseFlow extends AbstractFlow<PromiseFlow> {
 	static Vertx vertx = Vertx.vertx();
 	final FlowUnit head = new FlowUnit(this.size = 0, null, null, null);
 	int size;
@@ -333,7 +333,7 @@ public class PromiseFlow extends AbstractFlow {
 		System.out.println("2:" + hehe);
 		flowUnit.setParam("hehe", hehe + "->" + flowUnit.toString());
 		String a = null;
-		a.toString();
+//		a.toString();
 		flowUnit.next();
 	}/*, (flowUnitState) -> {
 		String hehe = flowUnitState.getParam("hehe", String.class);
@@ -375,14 +375,7 @@ public class PromiseFlow extends AbstractFlow {
 		vertx.close();
 	}
 
-	enum STATE {
-		PREPARE(0), RUNING(1), FINISH(2), FAIL(-1);
-		int code;
 
-		STATE(int stateCode) {
-			this.code = stateCode;
-		}
-	}
 
 
 }

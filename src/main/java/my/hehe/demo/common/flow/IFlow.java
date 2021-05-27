@@ -64,4 +64,13 @@ public interface IFlow {
 
 		void flowFail();
 	}
+
+	enum STATE {
+		PREPARE(0), RUNING(1), FINISH(2), FAIL(-1);
+		int code;
+
+		STATE(int stateCode) {
+			this.code = stateCode;
+		}
+	}
 }
