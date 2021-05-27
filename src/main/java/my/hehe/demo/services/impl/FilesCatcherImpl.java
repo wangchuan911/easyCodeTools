@@ -8,9 +8,9 @@ import my.hehe.demo.common.*;
 import my.hehe.demo.common.annotation.ReflectionUtils;
 import my.hehe.demo.common.annotation.ResTypeCheck;
 import my.hehe.demo.common.annotation.ResZip;
+import my.hehe.demo.common.flow.PromiseFlow;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.vo.ResourceVO;
-import org.apache.commons.lang.StringUtils;
 import org.reflections.Reflections;
 
 import java.io.*;
@@ -118,11 +118,11 @@ public class FilesCatcherImpl implements FilesCatcher {
 	};
 	PromiseFlow promiseFlow =
 			new PromiseFlow("遍历文本，找文件", flow -> {
-				Set<String> fileList = flow.getParam("fileList", Set.class),
-						errorFile = flow.getParam("errorFile", Set.class),
-						simpleFiles = flow.getParam("simpleFiles", Set.class);
-				Set<ResourceVO> unSimpleFiles = flow.getParam("unSimpleFiles", Set.class);
-				Set<Class<? extends ResourceVO>> classSet = flow.getParam("classSet", Set.class);
+				Set<String> fileList = flow.getParam("fileList"),
+						errorFile = flow.getParam("errorFile"),
+						simpleFiles = flow.getParam("simpleFiles");
+				Set<ResourceVO> unSimpleFiles = flow.getParam("unSimpleFiles");
+				Set<Class<? extends ResourceVO>> classSet = flow.getParam("classSet");
 				fileList.stream().forEach(fileName -> {
 					if (typeCheckMethod == null) return;
 					ResourceVO resourceVO = null;
@@ -155,18 +155,18 @@ public class FilesCatcherImpl implements FilesCatcher {
 				}
 				flow.next();
 			}).then("把一般文件压缩到zip文件中", flow -> {
-				Set<String> simpleFiles = flow.getParam("simpleFiles", Set.class),
-						errorFile = flow.getParam("errorFile", Set.class);
+				Set<String> simpleFiles = flow.getParam("simpleFiles"),
+						errorFile = flow.getParam("errorFile");
 				if (simpleFiles.size() > 0) {
-					ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+					ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS);
 					this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
 				}
 				flow.next();
 			}).then("把特殊文件压缩到zip文件中", flow -> {
-				Set<ResourceVO> unSimpleFiles = flow.getParam("unSimpleFiles", Set.class);
-				Set<String> errorFile = flow.getParam("errorFile", Set.class);
+				Set<ResourceVO> unSimpleFiles = flow.getParam("unSimpleFiles");
+				Set<String> errorFile = flow.getParam("errorFile");
 				if (unSimpleFiles.size() > 0 && typeZipMethod.size() > 0) {
-					ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
+					ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS);
 					CompositeFutureImpl
 							.all(typeZipMethod
 									.stream()
@@ -217,11 +217,11 @@ public class FilesCatcherImpl implements FilesCatcher {
 		promiseFlow.start(map, null, throwable -> {
 			promise.fail(throwable.cause());
 		}, flow -> {
-			ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS, ZipOutputStream.class);
-			File zipOfFile = flow.getParam(KEY_FIL_NAM, File.class);
+			ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS);
+			File zipOfFile = flow.getParam(KEY_FIL_NAM);
 			//生成失败信息
 			try {
-				this.createFailFile(flow.getParam("errorFile", Set.class), zipOutputStream);
+				this.createFailFile(flow.getParam("errorFile"), zipOutputStream);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -506,6 +506,16 @@ public class FilesCatcherImpl implements FilesCatcher {
 		if (fails.size() == 0) return;
 		zipOutputStream.putNextEntry(new ZipEntry("result.txt"));
 		for (String str : fails) {
+			str += "\r\n";
+			zipOutputStream.write(str.getBytes());
+		}
+		zipOutputStream.closeEntry();
+	}
+
+	private void createListFile(Set<String> fileList, ZipOutputStream zipOutputStream) throws IOException {
+		if (fileList.size() == 0) return;
+		zipOutputStream.putNextEntry(new ZipEntry("fileList.txt"));
+		for (String str : fileList) {
 			str += "\r\n";
 			zipOutputStream.write(str.getBytes());
 		}

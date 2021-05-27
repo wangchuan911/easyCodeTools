@@ -1,17 +1,14 @@
 package my.hehe.demo.services.impl;
 
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
-import my.hehe.demo.common.AsyncFlow;
-import my.hehe.demo.common.PromiseFlow;
+import my.hehe.demo.common.flow.PromiseFlow;
 import my.hehe.demo.common.StreamUtils;
 import my.hehe.demo.common.annotation.ReflectionUtils;
 import my.hehe.demo.services.FilesDeploy;
 import my.hehe.demo.services.vo.DeployVO;
-import my.hehe.demo.services.vo.ResourceVO;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -51,7 +48,7 @@ public class FilesDeployImpl implements FilesDeploy {
 			KEY_ERROR_FILE_LIST = "error",
 			KEY_SUCCESS_FILE_LIST = "doing";
 	final PromiseFlow flow = new PromiseFlow("解析zip文件", flow -> {
-		File zip = new File(flow.getParam("zipFile", String.class));
+		File zip = new File((String) flow.getParam("zipFile"));
 		ZipInputStream zipInputStream;
 		try {
 			zipInputStream = new ZipInputStream(new FileInputStream(zip));
@@ -61,8 +58,8 @@ public class FilesDeployImpl implements FilesDeploy {
 			flow.fail("沒找到上传的压缩文件！");
 		}
 	}).then("写入前初始化", asyncFlow -> {
-		ZipInputStream zipInputStream = asyncFlow.getParam(KEY_ZIP_FILE_STRAM, ZipInputStream.class);
-		List<String> error = asyncFlow.getParam(KEY_ERROR_FILE_LIST, List.class);
+		ZipInputStream zipInputStream = asyncFlow.getParam(KEY_ZIP_FILE_STRAM);
+		List<String> error = asyncFlow.getParam(KEY_ERROR_FILE_LIST);
 		deployVOS.entrySet().stream().forEach(stringDeployVOEntry -> {
 			try {
 				stringDeployVOEntry.getValue().deployAllBefore(zipInputStream);
@@ -72,9 +69,9 @@ public class FilesDeployImpl implements FilesDeploy {
 		});
 		asyncFlow.next();
 	}).then("写入文件", asyncFlow -> {
-		ZipInputStream zipInputStream = asyncFlow.getParam(KEY_ZIP_FILE_STRAM, ZipInputStream.class);
-		List<String> error = asyncFlow.getParam(KEY_ERROR_FILE_LIST, List.class);
-		List<String> doing = asyncFlow.getParam(KEY_SUCCESS_FILE_LIST, List.class);
+		ZipInputStream zipInputStream = asyncFlow.getParam(KEY_ZIP_FILE_STRAM);
+		List<String> error = asyncFlow.getParam(KEY_ERROR_FILE_LIST);
+		List<String> doing = asyncFlow.getParam(KEY_SUCCESS_FILE_LIST);
 		ZipEntry zipEntry = null;
 		do {
 			try {
@@ -185,22 +182,27 @@ public class FilesDeployImpl implements FilesDeploy {
 			promise.fail(flowUnitState.cause());
 		}, flowEndUnitState -> {
 			onceUser.decrementAndGet();
-			ZipInputStream zipInputStream = flowEndUnitState.getParam(KEY_ZIP_FILE_STRAM, ZipInputStream.class);
+			ZipInputStream zipInputStream = flowEndUnitState.getParam(KEY_ZIP_FILE_STRAM);
 			deployVOS.entrySet().stream().forEach(stringDeployVOEntry -> {
 				try {
 					stringDeployVOEntry.getValue().deployAllAfter(zipInputStream);
 				} catch (Throwable e) {
-					error.add(e.toString());
+					e.printStackTrace();
+					error.add(String.format("%s:%s", stringDeployVOEntry.getKey(), e.toString()));
 				}
 			});
 
 			StreamUtils.close(zipInputStream);
 			if (!flowEndUnitState.isFail()) {
 				promise.complete(String.format("成功：%s\n失败：%s",
-						doing.size() == 0 ? "无" : doing.stream().collect(Collectors.joining("\n")),
-						error.size() == 0 ? "无" : error.stream().collect(Collectors.joining("\n"))
-				));
+						doing.size() == 0 ? "无" : doing.stream().collect(Collectors.groupingBy(o -> o)).entrySet().stream().map(o ->
+								String.format("%s:%d个文件", o.getKey(), o.getValue().size())
+						).collect(Collectors.joining("\n")),
+						error.size() == 0 ? "无" : error.stream().collect(Collectors.groupingBy(o -> o)).entrySet().stream().map(o ->
+								String.format("%s:%d个文件", o.getKey(), o.getValue().size())
+						).collect(Collectors.joining("\n"))));
 			}
 		});
 	}
+
 }

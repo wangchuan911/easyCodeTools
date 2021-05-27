@@ -1,4 +1,4 @@
-package my.hehe.demo.common;
+package my.hehe.demo.common.flow;
 
 import io.vertx.core.*;
 import io.vertx.core.impl.future.CompositeFutureImpl;
@@ -7,10 +7,9 @@ import org.apache.commons.lang.StringUtils;
 import java.util.*;
 import java.util.function.Function;
 
-public class PromiseFlow {
-
+public class PromiseFlow extends AbstractFlow {
 	static Vertx vertx = Vertx.vertx();
-	final PromiseFlow.FlowUnit head = new PromiseFlow.FlowUnit(this.size = 0, null, null, null);
+	final FlowUnit head = new FlowUnit(this.size = 0, null, null, null);
 	int size;
 	SuccessHandler success;
 	CompleteHandler complete;
@@ -35,20 +34,24 @@ public class PromiseFlow {
 		this(null, handle, null);
 	}
 
+	@Override
 	public PromiseFlow then(ResolveHandler resolve, RejectAndRetryHandler reject) {
 		return this.then(null, resolve, reject);
 	}
 
+	@Override
 	public PromiseFlow then(ResolveHandler resolve) {
 		return this.then(null, resolve, null);
 	}
 
+	@Override
 	public PromiseFlow then(String name, ResolveHandler resolve) {
 		return this.then(name, resolve, null);
 	}
 
+	@Override
 	public PromiseFlow then(String name, ResolveHandler resolve, RejectAndRetryHandler reject) {
-		PromiseFlow.FlowUnit idxUnit = this.head;
+		FlowUnit idxUnit = this.head;
 		for (int i = 0; i < this.size - 1; i++) {
 			idxUnit = idxUnit.nextUnit;
 		}
@@ -57,11 +60,12 @@ public class PromiseFlow {
 			idxUnit.name = StringUtils.isEmpty(name) ? String.format("Step %d:%s", this.size, Thread.currentThread().getStackTrace()[1]) : name;
 			idxUnit.index = ++this.size;
 		} else {
-			idxUnit.nextUnit = new PromiseFlow.FlowUnit(++this.size, name, resolve, reject);
+			idxUnit.nextUnit = new FlowUnit(++this.size, name, resolve, reject);
 		}
 		return this;
 	}
 
+	@Override
 	public PromiseFlow allThen(String name, PromiseFlow... promiseFlows) {
 		return this.then(name, flowUnitState -> {
 			switch (promiseFlows.length) {
@@ -69,7 +73,7 @@ public class PromiseFlow {
 					flowUnitState.next();
 					break;
 				case 1:
-					promiseFlows[0].start(flowUnitState.param, flowEndUnitState -> {
+					promiseFlows[0].start(((FlowUnitState) flowUnitState).param, flowEndUnitState -> {
 						flowUnitState.next();
 					}, throwable -> {
 						flowUnitState.fail(throwable.cause());
@@ -81,7 +85,7 @@ public class PromiseFlow {
 									.stream(promiseFlows)
 									.map(promiseFlow ->
 											Future.future(promise1 -> {
-												promiseFlow.start(flowUnitState.param, flowEndUnitState -> {
+												promiseFlow.start(((FlowUnitState) flowUnitState).param, flowEndUnitState -> {
 													promise1.complete();
 												}, throwable -> {
 													promise1.fail(throwable.cause());
@@ -97,10 +101,11 @@ public class PromiseFlow {
 		});
 	}
 
+	@Override
 	public PromiseFlow switchThen(String name, SwitchHandler stateFunction, PromiseFlow... promiseFlows) {
 		return this.then(name, flowUnitState -> {
 			promiseFlows[stateFunction.apply(flowUnitState)]
-					.start(flowUnitState.param, flowEndUnitState -> {
+					.start(((FlowUnitState) flowUnitState).param, flowEndUnitState -> {
 						flowUnitState.next();
 					}, throwable -> {
 						flowUnitState.fail(throwable.cause());
@@ -109,37 +114,44 @@ public class PromiseFlow {
 	}
 
 
+	@Override
 	public PromiseFlow fail(FailHandler fail) {
 		this.fail = fail;
 		return this;
 	}
 
+	@Override
 	public PromiseFlow complete(CompleteHandler complete) {
 		this.complete = complete;
 		return this;
 	}
 
+	@Override
 	public PromiseFlow success(SuccessHandler success) {
 		this.success = success;
 		return this;
 	}
 
-	public PromiseFlow.Flow start() {
+	@Override
+	public FlowStream start() {
 		return start(null);
 	}
 
-	public PromiseFlow.Flow start(Map<String, Object> params) {
-		PromiseFlow.Flow flow = new PromiseFlow.Flow(this.head, this.success, this.fail, this.complete);
+	@Override
+	public FlowStream start(Map<String, Object> params) {
+		FlowStream flow = new FlowStream(this.head, this.success, this.fail, this.complete);
 		flow.start(params);
 		return flow;
 	}
 
-	public PromiseFlow.Flow start(Map<String, Object> params, Handler<FlowEndUnitState> success, FailHandler fail) {
+	@Override
+	public FlowStream start(Map<String, Object> params, Handler<IFlowEndUnitState> success, FailHandler fail) {
 		return this.start(params, success, fail, null);
 	}
 
-	public PromiseFlow.Flow start(Map<String, Object> params, Handler<FlowEndUnitState> success, FailHandler fail, Handler<FlowEndUnitState> complete) {
-		PromiseFlow.Flow flow = new PromiseFlow.Flow(this.head, flowEndUnitState -> {
+	@Override
+	public FlowStream start(Map<String, Object> params, Handler<IFlowEndUnitState> success, FailHandler fail, Handler<IFlowEndUnitState> complete) {
+		FlowStream flow = new FlowStream(this.head, flowEndUnitState -> {
 			if (this.success != null) {
 				this.success.handle(flowEndUnitState);
 			}
@@ -166,21 +178,15 @@ public class PromiseFlow {
 	}
 
 
-	public class Flow {
-		PromiseFlow.FlowUnit head;
-		STATE state = STATE.PREPARE;
-		SuccessHandler success;
-		CompleteHandler complete;
-		FailHandler fail;
+	public class FlowStream extends AbstractFlowStream {
 
-		public Flow(FlowUnit head, SuccessHandler success, FailHandler fail, CompleteHandler complete) {
-			this.head = head;
-			this.success = success;
-			this.complete = complete;
-			this.fail = fail;
+
+		public FlowStream(FlowUnit head, SuccessHandler success, FailHandler fail, CompleteHandler complete) {
+			super(head, success, fail, complete);
 		}
 
-		void execute(final PromiseFlow.FlowUnit flowUnit, final Map<String, Object> params) {
+		@Override
+		void execute(final FlowUnit flowUnit, final Map<String, Object> params) {
 			this.isRuning(true);
 			if (flowUnit == null) {
 				this.end(STATE.FINISH, params);
@@ -221,78 +227,27 @@ public class PromiseFlow {
 			});
 		}
 
-		void end(STATE state, Map<String, Object> params) {
-			this.isRuning(true);
-			this.state = state;
-			FlowEndUnitState complete = new FlowEndUnitState(params);
-			switch (state) {
-				case FINISH:
-					if (this.success != null) {
-						this.success.handle(complete);
-					}
-					break;
-				case FAIL:
-					complete.isFail = true;
-					break;
-			}
-			if (this.complete != null) {
-				this.complete.handle(complete);
-			}
-//		vertx.close();
-		}
-
-		void start() {
-			this.start(null);
-		}
-
-		void start(Map<String, Object> params) {
-			this.isPrepare(true);
-			state = STATE.RUNING;
-			execute(this.head, params == null ? new HashMap<>() : params);
-		}
-
-		boolean isPrepare(boolean throwbale) {
-			if (this.state.code != STATE.PREPARE.code) {
-				if (throwbale) throw new RuntimeException("not Prepare");
-				return false;
-			}
-			return true;
-		}
-
-		boolean isRuning(boolean throwbale) {
-			if (this.state.code != STATE.RUNING.code) {
-				if (throwbale) throw new RuntimeException("not Running");
-				return false;
-			}
-			return true;
-		}
-
-		boolean isStop(boolean throwbale) {
-			if (this.isPrepare(false) || this.isRuning(false)) {
-				if (throwbale) throw new RuntimeException("not Stop");
-				return false;
-			}
-			return true;
-		}
-
-		public boolean isComplete() {
-			return this.state == STATE.FINISH;
-		}
-
-		public boolean isError() {
-			return this.state == STATE.FAIL;
+		@Override
+		Function<Map<String, Object>, IFlowEndUnitState> getFlowEndUnitState() {
+			return map -> new FlowEndUnitState(map);
 		}
 	}
 
-	public class FlowEndUnitState extends FlowUnitState {
+	public class FlowEndUnitState extends FlowUnitState implements IFlowEndUnitState {
 		boolean isFail;
 
 		FlowEndUnitState(Map<String, Object> param) {
 			super(null, param);
 		}
 
+		@Override
 		public boolean isFail() {
 			return isFail;
+		}
+
+		@Override
+		public void flowFail() {
+			this.isFail = true;
 		}
 
 		@Override
@@ -311,39 +266,32 @@ public class PromiseFlow {
 		}
 	}
 
-	public class FlowUnitState {
+	public class FlowUnitState extends AbstractFlowUnitState {
 		Promise promise;
-		Map<String, Object> param;
 
 		FlowUnitState(Promise promise, Map<String, Object> param) {
 			this.promise = promise;
 			this.param = param;
 		}
 
+		@Override
 		public void next() {
 			this.promise.complete();
 		}
 
+		@Override
 		public void fail(String s) {
 			this.promise.fail(s);
 		}
 
+		@Override
 		public void fail(Throwable t) {
 			this.promise.fail(t);
 		}
 
-		public <T> T getParam(String key, Class<T> t) {
-			return (T) this.param.get(key);
-		}
-
-		public void setParam(String key, Object value) {
-			if (this.param == null)
-				this.param = new HashMap<>();
-			this.param.put(key, value);
-		}
 	}
 
-	public final class FlowFailEndUnitState extends FlowEndUnitState {
+	public final class FlowFailEndUnitState extends FlowEndUnitState implements IFlowFailEndUnitState {
 		Throwable throwable;
 
 		FlowFailEndUnitState(Map<String, Object> param, Throwable throwable) {
@@ -351,12 +299,13 @@ public class PromiseFlow {
 			this.throwable = throwable;
 		}
 
+		@Override
 		public Throwable cause() {
 			return this.throwable;
 		}
 	}
 
-	public class FlowRejectUnitState extends FlowUnitState {
+	public class FlowRejectUnitState extends FlowUnitState implements IFlowRejectUnitState {
 		Throwable throwable;
 
 		FlowRejectUnitState(Promise promise, Map<String, Object> param, Throwable throwable) {
@@ -364,71 +313,66 @@ public class PromiseFlow {
 			this.throwable = throwable;
 		}
 
+		@Override
 		public Throwable cause() {
 			return this.throwable;
 		}
 
 	}
 
-	class FlowUnit {
-		int index;
-		String name;
-		ResolveHandler resolve;
-		RejectAndRetryHandler reject;
-		PromiseFlow.FlowUnit nextUnit;
-
-		FlowUnit(int index, String name, ResolveHandler resolve, RejectAndRetryHandler reject) {
-			this.name = name;
-			this.resolve = resolve;
-			this.reject = reject;
-			this.index = index;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		void handle(FlowUnitState flowUnitState) throws Throwable {
-			this.resolve.handle(flowUnitState);
-		}
-
-
-	}
 
 	static PromiseFlow f = new PromiseFlow(flowUnit -> {
-		System.out.println(flowUnit.toString());
-		System.out.println(1);
+		//System.out.println(flowUnit.toString());
+		String hehe = flowUnit.getParam("hehe");
+		System.out.println("1:" + hehe);
+		flowUnit.setParam("hehe", hehe + "->" + flowUnit.toString());
 		flowUnit.next();
 	}).then(flowUnit -> {
-		System.out.println(flowUnit.toString());
-		System.out.println(2);
-		/*String a = null;
-		a.toString();*/
+		//System.out.println(flowUnit.toString());
+		String hehe = flowUnit.getParam("hehe");
+		System.out.println("2:" + hehe);
+		flowUnit.setParam("hehe", hehe + "->" + flowUnit.toString());
+		String a = null;
+		a.toString();
 		flowUnit.next();
-	}, (flowUnitState) -> {
-		System.out.println("skip");
+	}/*, (flowUnitState) -> {
+		String hehe = flowUnitState.getParam("hehe", String.class);
+		System.out.println("skip:" + hehe);
+		flowUnitState.setParam("hehe", hehe + "->" + flowUnitState.toString());
 		flowUnitState.cause().printStackTrace();
 		flowUnitState.next();
-	}).then(flowUnit -> {
-		System.out.println(flowUnit.toString());
-		System.out.println(3);
+	}*/).then(flowUnit -> {
+		//System.out.println(flowUnit.toString());
+		String hehe = flowUnit.getParam("hehe");
+		System.out.println("3:" + hehe);
+		flowUnit.setParam("hehe", hehe + "->" + flowUnit.toString());
 		flowUnit.next();
 	}).fail(throwable -> {
 		throwable.cause().printStackTrace();
 	}).complete(promiseFlow -> {
-		System.out.println("fin");
+		String hehe = promiseFlow.getParam("hehe");
+		System.out.println("fin:" + hehe);
+		promiseFlow.setParam("hehe", hehe + "->" + promiseFlow.toString());
 	});
 
 	public static void main(String[] args) {
 		System.out.println("start");
-		f.start();
+		Map<String, Object> map = new HashMap<>();
+		map.put("hehe", "flow1");
+		f.start(map);
 
-//		f.start();
+		map = new HashMap<>();
+		map.put("hehe", "flow2");
+		f.start(map);
 		System.out.println("end");
 		String uuid = UUID.randomUUID().toString().replaceAll("-", "");
 		System.out.println(uuid);
-		System.out.println(uuid.length());
-
+		try {
+			System.out.println(Integer.parseInt(null));
+		} catch (Throwable e) {
+			System.out.println(e.getMessage());
+		}
+		vertx.close();
 	}
 
 	enum STATE {
@@ -440,35 +384,6 @@ public class PromiseFlow {
 		}
 	}
 
-	@FunctionalInterface
-	public interface RejectAndRetryHandler {
-		void handle(FlowRejectUnitState flowRejectUnitState) throws Throwable;
-	}
 
-	@FunctionalInterface
-	public interface ResolveHandler {
-		void handle(PromiseFlow.FlowUnitState flowUnitState) throws Throwable;
-	}
-
-	@FunctionalInterface
-	public interface SuccessHandler {
-		void handle(PromiseFlow.FlowEndUnitState flowUnitState);
-	}
-
-	@FunctionalInterface
-	public interface CompleteHandler extends SuccessHandler {
-
-	}
-
-
-	@FunctionalInterface
-	public interface FailHandler {
-		void handle(PromiseFlow.FlowFailEndUnitState flowUnitState);
-	}
-
-	@FunctionalInterface
-	public interface SwitchHandler {
-		int apply(PromiseFlow.FlowUnitState flowUnitState);
-	}
 }
 
