@@ -160,6 +160,12 @@ public class FilesCatcherImpl implements FilesCatcher {
 				if (simpleFiles.size() > 0) {
 					ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS);
 					this.zipSimpleFile(zipOutputStream, simpleFiles, errorFile);
+
+					System.out.println("<================simpleFiles================>");
+					simpleFiles.stream().forEach(s -> {
+						System.out.println(s);
+					});
+					System.out.println("<===========================================>");
 				}
 				flow.next();
 			}).then("把特殊文件压缩到zip文件中", flow -> {

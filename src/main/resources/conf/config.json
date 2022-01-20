@@ -10,8 +10,7 @@
         "D:\\Workspaces\\intellij\\RimIres\\web\\WEB-INF\\classes\\production\\RimIres"
       ],
       "resservice": [
-        "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\webapp",
-        "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-view\\src\\main\\page"
+        "D:\\Workspaces\\Eclipse-O\\resservice\\src\\main\\webapp"
       ],
       "IomInterfaceGX\\WEB-INF\\classes": [
         "D:\\Workspaces\\Eclipse-O\\IomInterfaceGX\\out\\production\\IomInterfaceGX",
@@ -28,6 +27,9 @@
       ],
       "mobile\\WEB-INF\\classes": [
         "D:\\Workspaces\\intellij\\mobileprojnew\\output\\production\\mobileprojnew"
+      ],
+      "mobile": [
+        "D:\\Workspaces\\intellij\\mobileprojnew\\WEB-ROOT"
       ],
       "IOMProjWeb\\WEB-INF\\classes": [
         "D:\\Workspaces\\Eclipse-O\\gx_IOMProjGbl\\out\\production\\gx_IOMProjGbl"
@@ -96,11 +98,35 @@
       "biz-server": [
         "D:\\Workspaces\\intellij\\V8\\res-biz\\biz-server\\target\\classes"
       ],
+      "V8": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-view\\src\\main\\webapp",
+        "D:\\Workspaces\\intellij\\V8\\gx-res-flow\\resflow-view\\src\\main\\page",
+        "D:\\Workspaces\\intellij\\V8\\res-biz\\biz-view\\src\\main\\page",
+        "D:\\Workspaces\\intellij\\V8\\res-cable\\cable-view\\src\\main\\page",
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-cable\\cable-view\\src\\main\\page",
+        "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-view\\src\\main\\page"
+      ],
       "guangxiDXDeviceService": [
         "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\target\\classes"
-      ]
+      ],
+      "guangxiTransferService": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-server\\target\\classes"
+      ],
+      "res-cable": [
+        "D:\\Workspaces\\intellij\\V8\\res-cable\\cable-intf\\target\\classes"
+      ],
+      "gx-res-cable": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-cable\\cable-server\\target\\classes"
+      ],
+	  "cutover-server-2.1.1-core":[
+		"D:\\Workspaces\\intellij\\V8\\res-cutover\\cutover-server\\target\\classes"
+	  ]
     },
     "source": {
+      "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-server\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-server\\src\\main\\resources"
+      ],
       "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-base\\target\\classes": [
         "D:\\Workspaces\\intellij\\eoms-gxdx\\isa-eoms-service\\isa-eoms-service-base\\src\\main\\java"
       ],
@@ -169,6 +195,10 @@
         "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\src\\main\\resources",
         "D:\\Workspaces\\intellij\\V8\\res-cutover-gx\\cutover-server\\src\\main\\java"
       ],
+	  "D:\\Workspaces\\intellij\\V8\\res-cutover\\cutover-server\\target\\classes":[
+		"D:\\Workspaces\\intellij\\V8\\res-cutover\\cutover-server\\src\\main\\java",
+		"D:\\Workspaces\\intellij\\V8\\res-cutover\\cutover-server\\src\\main\\resources"
+	  ],
       "D:\\Workspaces\\Eclipse-O\\RS_AF\\bin": [
         "D:\\Workspaces\\Eclipse-O\\RS_AF\\src"
       ],
@@ -186,6 +216,18 @@
       "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\target\\classes": [
         "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\src\\main\\resources",
         "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-device\\device-server\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-cable\\cable-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-cable\\cable-server\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\V8\\res-cable\\cable-server\\src\\main\\resources"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-cable\\cable-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-cable\\cable-server\\src\\main\\resources",
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-cable\\cable-server\\src\\main\\java"
+      ],
+      "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-server\\target\\classes": [
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-server\\src\\main\\java",
+        "D:\\Workspaces\\intellij\\V8\\res-guangxiDX\\res-transfer\\transfer-server\\src\\main\\resources"
       ]
     },
     "sourceToBuild": {

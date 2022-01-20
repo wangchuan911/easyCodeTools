@@ -2,6 +2,7 @@ package my.hehe.demo;
 
 import io.netty.util.internal.StringUtil;
 import io.vertx.core.*;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
@@ -220,7 +221,8 @@ public class WebVerticle extends AbstractVerticle {
 			this.goResultHtml(new JsonObject().put("msg", routingContext.failure().getMessage()), routingContext);
 		});
 		int port = serverConfig.getJsonObject("port").getInteger("web");
-		vertx.createHttpServer().requestHandler(router).listen(port, http -> {
+
+		vertx.createHttpServer(new HttpServerOptions().setMaxFormAttributeSize(1024 * 1024)).requestHandler(router).listen(port, http -> {
 			if (http.succeeded()) {
 				startFuture.complete();
 				System.out.println("HTTP server started http://localhost:" + port + "/get.html");

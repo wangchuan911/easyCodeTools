@@ -2,8 +2,13 @@ package my.hehe.demo.common.flow;
 
 import io.vertx.core.*;
 import io.vertx.core.impl.future.CompositeFutureImpl;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.apache.commons.lang.StringUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.*;
 import java.util.function.Function;
 
@@ -355,8 +360,8 @@ public class PromiseFlow extends AbstractFlow<PromiseFlow> {
 		promiseFlow.setParam("hehe", hehe + "->" + promiseFlow.toString());
 	});
 
-	public static void main(String[] args) {
-		System.out.println("start");
+	public static void main(String[] args) throws UnsupportedEncodingException {
+		/*System.out.println("start");
 		Map<String, Object> map = new HashMap<>();
 		map.put("hehe", "flow1");
 		f.start(map);
@@ -372,11 +377,45 @@ public class PromiseFlow extends AbstractFlow<PromiseFlow> {
 		} catch (Throwable e) {
 			System.out.println(e.getMessage());
 		}
-		vertx.close();
+		vertx.close();*/
+		/*System.out.println(URLEncoder.encode("+ + ", "utf-8").replace("+", "%20"));
+		System.out.println(URLDecoder.decode("%2B%20%2B%20","utf-8"));
+
+		System.out.println("asdsad\n");
+		System.out.println("sss");
+		Class[] classes = new Class[]{byte.class, Byte.class,
+				short.class, Short.class,
+				int.class, Integer.class,
+				long.class, Long.class,
+				float.class, Float.class,
+				double.class, Double.class,
+				char.class, Character.class,
+				JsonArray.class, List.class,
+				JsonObject.class, Map.class};
+		Arrays.stream(classes).forEach(aClass -> {
+			System.out.println(String.format("case \"%s\":\nbreak", aClass.getName()));
+		});
+*/
+		char[] chars = new char[32];
+		Random random = new Random();
+		int offset;
+		char choffset;
+		for (int i = 0; i < chars.length; i++) {
+			offset = random.nextInt(61);
+			if (offset >= 36) {
+				choffset = 'A';
+				offset -= 36;
+			} else if (offset >= 10) {
+				choffset = 'a';
+				offset -= 10;
+			} else {
+				choffset = '0';
+			}
+			chars[i] = (char) (choffset + offset);
+		}
+		System.out.println(new String(chars));
+
 	}
-
-
-
 
 }
 
