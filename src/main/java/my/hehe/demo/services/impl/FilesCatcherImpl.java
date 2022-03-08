@@ -6,17 +6,15 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.*;
 import my.hehe.demo.common.annotation.ReflectionUtils;
-import my.hehe.demo.common.annotation.ResTypeCheck;
 import my.hehe.demo.common.annotation.ResZip;
-import my.hehe.demo.common.flow.PromiseFlow;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.vo.ResourceVO;
 import org.reflections.Reflections;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -39,15 +37,11 @@ public class FilesCatcherImpl implements FilesCatcher {
 	Set<String> pathsSourse = null;
 	Map sourceToBuild = null;
 	String tmpFilePath = null;
-	Set<Method> typeCheckMethod = null;
-	Set<Method> typeZipMethod = null;
+	Set<ResZip> resZips = null;
 
 	private FilesCatcherImpl() {
 
 	}
-
-	final String KEY_ZIP_OS = "zipOutputStream";
-	final String KEY_FIL_NAM = "zipOfFile";
 
 	synchronized void setConfig(JsonObject config) {
 		confBuild = new JsonObject();
@@ -99,8 +93,16 @@ public class FilesCatcherImpl implements FilesCatcher {
 		sourceToBuild = config.getJsonObject("sourceToBuild").getMap();
 
 		Reflections reflections = ReflectionUtils.getReflection();
-		typeCheckMethod = reflections.getMethodsAnnotatedWith(ResTypeCheck.class);
-		typeZipMethod = reflections.getMethodsAnnotatedWith(ResZip.class);
+		resZips = reflections.getSubTypesOf(ResZip.class).stream().map(aClass -> {
+			try {
+				return aClass.newInstance();
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			return null;
+		}).collect(Collectors.toSet());
 	}
 
 	final static boolean isWindows = System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0;
@@ -116,7 +118,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 			return suffixSet.contains(suffix);
 		}
 	};
-	PromiseFlow promiseFlow =
+	/*PromiseFlow promiseFlow =
 			new PromiseFlow("遍历文本，找文件", flow -> {
 				Set<String> fileList = flow.getParam("fileList"),
 						errorFile = flow.getParam("errorFile"),
@@ -200,7 +202,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 				asyncFlow.cause().printStackTrace();
 			}).complete(flow -> {
 
-			});
+			});*/
 
 	@Override
 	public void dual(Set<String> fileList, Handler<AsyncResult<String>> outputBodyHandler) {
@@ -213,29 +215,23 @@ public class FilesCatcherImpl implements FilesCatcher {
 		final Set<ResourceVO> unSimpleFiles = new HashSet<>();
 		final Set<String> errorFile = new HashSet<>();
 		final Set<Class<? extends ResourceVO>> classSet = new HashSet<>();*/
-
-		Map<String, Object> map = new HashMap<>();
-		map.put("simpleFiles", new HashSet<String>());
-		map.put("unSimpleFiles", new HashSet<ResourceVO>());
-		map.put("errorFile", new HashSet<String>());
-		map.put("fileList", fileList);
-		map.put("classSet", new HashSet<Class<? extends ResourceVO>>());
-		promiseFlow.start(map, null, throwable -> {
-			promise.fail(throwable.cause());
-		}, flow -> {
-			ZipOutputStream zipOutputStream = flow.getParam(KEY_ZIP_OS);
-			File zipOfFile = flow.getParam(KEY_FIL_NAM);
-			//生成失败信息
-			try {
-				this.createFailFile(flow.getParam("errorFile"), zipOutputStream);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			//关闭数据流
-			StreamUtils.close(zipOutputStream);
-			if (!flow.isFail())
-				promise.complete(zipOfFile.getAbsolutePath());
-		});
+		CatchData catchData = new CatchData(fileList);
+		start(catchData)
+				.onComplete(catchDataAsyncResult -> {
+					//生成失败信息
+					try {
+						this.createFailFile(catchData.errorFile, catchData.zipOutputStream);
+					} catch (IOException e) {
+						e.printStackTrace();
+					} finally {
+						//关闭数据流
+						StreamUtils.close(catchData.zipOutputStream);
+					}
+					if (catchDataAsyncResult.succeeded())
+						promise.complete(catchData.zipFilePath);
+					else
+						promise.fail(catchDataAsyncResult.cause());
+				});
 //		AsyncFlow.getInstance()
 //				.then("遍历文本，找文件", flow -> {
 //					fileList.stream().forEach(fileName -> {
@@ -528,5 +524,99 @@ public class FilesCatcherImpl implements FilesCatcher {
 		zipOutputStream.closeEntry();
 	}
 
+	class CatchData {
+		String zipFilePath;
+		Set<String> fileList,
+				errorFile,
+				simpleFiles;
+		Set<ResourceVO> unSimpleFiles;
+		Set<Class<? extends ResourceVO>> classSet;
+		ZipOutputStream zipOutputStream;
 
+		CatchData() {
+			this.simpleFiles = new HashSet<String>();
+			this.unSimpleFiles = new HashSet<ResourceVO>();
+			this.errorFile = new HashSet<String>();
+			this.classSet = new HashSet<Class<? extends ResourceVO>>();
+		}
+
+		CatchData(Set<String> fileList) {
+			this();
+			this.fileList = fileList;
+		}
+	}
+
+	Future<CatchData> start(CatchData data) {
+		System.out.println("遍历文本，找文件");
+		return Future
+				.succeededFuture(data)
+				.compose(catchData -> {
+					catchData.fileList.stream().forEach(fileName -> {
+						ResourceVO resourceVO = null;
+						for (ResZip resZip : resZips) {
+							try {
+								resourceVO = resZip.createRes(fileName);
+								if (resourceVO != null) {
+									catchData.unSimpleFiles.add(resourceVO);
+									catchData.classSet.add(resourceVO.getClass());
+									break;
+								}
+							} catch (Throwable e) {
+								e.printStackTrace();
+								catchData.errorFile.add(fileName + " " + e.getMessage());
+							}
+						}
+						if (resourceVO == null) {
+							getFile(catchData.simpleFiles, catchData.errorFile, fileName);
+						}
+					});
+					return Future.succeededFuture(catchData);
+				})
+				.compose(catchData -> {
+					System.out.println("创建zip文件");
+					try {
+						File zip = this.careateZipFile();
+						catchData.zipFilePath = zip.getAbsolutePath();
+						System.out.println(catchData.zipFilePath);
+						catchData.zipOutputStream = new ZipOutputStream(new FileOutputStream(zip));
+					} catch (Exception e) {
+						return Future.failedFuture(e);
+					}
+					return Future.succeededFuture(catchData);
+				})
+				.compose(catchData -> {
+					System.out.println("把一般文件压缩到zip文件中");
+					if (catchData.simpleFiles.size() > 0) {
+						this.zipSimpleFile(catchData.zipOutputStream, catchData.simpleFiles, catchData.errorFile);
+
+						System.out.println("<================simpleFiles================>");
+						catchData.simpleFiles.stream().forEach(s -> {
+							System.out.println(s);
+						});
+						System.out.println("<===========================================>");
+					}
+					return Future.succeededFuture(catchData);
+				})
+				.compose(catchData -> {
+					System.out.println("把特殊文件压缩到zip文件中");
+					Promise<CatchData> promise = Promise.promise();
+					if (catchData.unSimpleFiles.size() > 0) {
+						CompositeFutureImpl
+								.all(catchData.unSimpleFiles
+										.stream()
+										.map(file ->
+												((ResZip) file).zipDataFile(catchData.zipOutputStream, catchData.errorFile))
+										.toArray(Future[]::new))
+								.onSuccess(compositeFuture -> {
+									promise.complete(catchData);
+								})
+								.onFailure(throwable -> {
+									promise.fail(throwable);
+								});
+					} else {
+						promise.complete(catchData);
+					}
+					return promise.future();
+				});
+	}
 }

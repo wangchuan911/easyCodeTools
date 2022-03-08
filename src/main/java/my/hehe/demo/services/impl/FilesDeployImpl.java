@@ -1,6 +1,7 @@
 package my.hehe.demo.services.impl;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
@@ -44,7 +45,7 @@ public class FilesDeployImpl implements FilesDeploy {
 
 	}
 
-	final String KEY_ZIP_FILE_STRAM = "zipInputStream",
+	/*final String KEY_ZIP_FILE_STRAM = "zipInputStream",
 			KEY_ERROR_FILE_LIST = "error",
 			KEY_SUCCESS_FILE_LIST = "doing";
 	final PromiseFlow flow = new PromiseFlow("解析zip文件", flow -> {
@@ -99,7 +100,7 @@ public class FilesDeployImpl implements FilesDeploy {
 			}
 		} while (zipEntry != null);
 		asyncFlow.next();
-	});
+	});*/
 
 	void setConfig(JsonObject config) {
 		deploys = config.getJsonObject("deploy");
@@ -158,8 +159,6 @@ public class FilesDeployImpl implements FilesDeploy {
 
 	@Override
 	public void dual(String zipFile, Handler<AsyncResult<String>> outputBodyHandler) {
-		final List<String> error = new LinkedList<>(),
-				doing = new LinkedList();
 		Promise promise = Promise.promise();
 		promise.future().onComplete(outputBodyHandler);
 		if (onceUser.get() > 0) {
@@ -171,38 +170,97 @@ public class FilesDeployImpl implements FilesDeploy {
 			promise.fail(new NullPointerException());
 			return;
 		}
+
+		DeployData deployData = new DeployData();
+		deployData.zipFile = zipFile;
 		onceUser.incrementAndGet();
-		Map<String, Object> params = new HashMap<>();
-		params.put("zipFile", zipFile);
-		params.put(KEY_ERROR_FILE_LIST, error);
-		params.put(KEY_SUCCESS_FILE_LIST, doing);
-		flow.start(params, flowEndUnitState -> {
-		}, flowUnitState -> {
-			flowUnitState.cause().printStackTrace();
-			promise.fail(flowUnitState.cause());
-		}, flowEndUnitState -> {
+		start(deployData).onComplete(deployDataAsyncResult -> {
 			onceUser.decrementAndGet();
-			ZipInputStream zipInputStream = flowEndUnitState.getParam(KEY_ZIP_FILE_STRAM);
+			ZipInputStream zipInputStream = deployData.zipInputStream;
 			deployVOS.entrySet().stream().forEach(stringDeployVOEntry -> {
 				try {
 					stringDeployVOEntry.getValue().deployAllAfter(zipInputStream);
 				} catch (Throwable e) {
 					e.printStackTrace();
-					error.add(String.format("%s:%s", stringDeployVOEntry.getKey(), e.toString()));
+					deployData.error.add(String.format("%s:%s", stringDeployVOEntry.getKey(), e.toString()));
 				}
 			});
 
 			StreamUtils.close(zipInputStream);
-			if (!flowEndUnitState.isFail()) {
+			if (deployDataAsyncResult.succeeded()) {
 				promise.complete(String.format("成功：%s\n失败：%s",
-						doing.size() == 0 ? "无" : doing.stream().collect(Collectors.groupingBy(o -> o)).entrySet().stream().map(o ->
+						deployData.doing.size() == 0 ? "无" : deployData.doing.stream().collect(Collectors.groupingBy(o -> o)).entrySet().stream().map(o ->
 								String.format("%s:%d个文件", o.getKey(), o.getValue().size())
 						).collect(Collectors.joining("\n")),
-						error.size() == 0 ? "无" : error.stream().collect(Collectors.groupingBy(o -> o)).entrySet().stream().map(o ->
+						deployData.error.size() == 0 ? "无" : deployData.error.stream().collect(Collectors.groupingBy(o -> o)).entrySet().stream().map(o ->
 								String.format("%s:%d个文件", o.getKey(), o.getValue().size())
 						).collect(Collectors.joining("\n"))));
+			} else {
+				promise.fail(deployDataAsyncResult.cause());
 			}
 		});
 	}
 
+	class DeployData {
+		String zipFile;
+		ZipInputStream zipInputStream;
+		List<String> error, doing;
+	}
+
+	Future<DeployData> start(DeployData data) {
+		System.out.println("解析zip文件");
+		return Future.succeededFuture(data)
+				.compose(deployData -> {
+					try {
+						deployData.zipInputStream = new ZipInputStream(new FileInputStream(new File(deployData.zipFile)));
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+						return Future.failedFuture(e);
+					}
+					return Future.succeededFuture(deployData);
+				})
+				.compose(deployData -> {
+					System.out.println("写入前初始化");
+					deployData.doing = new LinkedList<>();
+					deployData.error = new LinkedList<>();
+					deployVOS.entrySet().stream().forEach(stringDeployVOEntry -> {
+						try {
+							stringDeployVOEntry.getValue().deployAllBefore(deployData.zipInputStream);
+						} catch (Throwable e) {
+							deployData.error.add(e.toString());
+						}
+					});
+					return Future.succeededFuture(deployData);
+				})
+				.compose(deployData -> {
+					System.out.println("写入文件");
+					ZipEntry zipEntry = null;
+					do {
+						try {
+							zipEntry = deployData.zipInputStream.getNextEntry();
+							if (zipEntry == null) continue;
+							String zipName = zipEntry.getName();
+							String pj = null;
+							int idx = zipName.indexOf("\\");
+							if (idx < 0) {
+								idx = zipName.indexOf("/");
+								if (idx < 0) continue;
+							}
+							if (idx > 0) {
+								pj = zipName.substring(0, idx);
+							}
+							if (deployVOS.containsKey(pj)) {
+								DeployVO deployVO = deployVOS.get(pj);
+								deployVO.deploySingle(deployData.zipInputStream, zipEntry);
+								deployData.doing.add(pj);
+							}
+						} catch (Throwable e) {
+							e.printStackTrace();
+							deployData.error.add(e.toString());
+							continue;
+						}
+					} while (zipEntry != null);
+					return Future.succeededFuture(deployData);
+				});
+	}
 }

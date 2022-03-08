@@ -5,7 +5,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import my.hehe.demo.common.JdbcUtils;
-import my.hehe.demo.common.annotation.ResTypeCheck;
 import my.hehe.demo.common.annotation.ResZip;
 
 import java.io.BufferedInputStream;
@@ -14,7 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
-public class DataBaseVO extends ResourceVO {
+public class DataBaseVO extends ResourceVO implements ResZip {
 	private String type;
 	private String user;
 
@@ -51,15 +50,16 @@ public class DataBaseVO extends ResourceVO {
 				'}';
 	}
 
-	@ResTypeCheck
-	public static ResourceVO createRes(String text) {
+	@Override
+	public ResourceVO createRes(String text) {
 		if (text.toUpperCase().indexOf("DATA:") < 0) return null;
 		String[] var = text.split(":")[1].split("\\.");
 		return new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase());
 	}
 
-	@ResZip
-	public static void zipDataFile(ZipOutputStream zipOutputStream, Set<ResourceVO> dataBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
+
+	@Override
+	public Future<Void> zipDataFile(ZipOutputStream zipOutputStream, Set<String> errorFile) {
 		BufferedInputStream bis = null;
 		/*AtomicInteger atomicInteger = new AtomicInteger(0);
 		for (ResourceVO resourceVO : dataBaseVOS) {
@@ -88,39 +88,29 @@ public class DataBaseVO extends ResourceVO {
 				}
 			}
 		}*/
-		CompositeFuture
-				.all(dataBaseVOS.stream()
-						.filter(resourceVO -> resourceVO instanceof DataBaseVO)
-						.map(resourceVO ->
-								Future.future(promise -> {
-									DataBaseVO dataBaseVO = (DataBaseVO) resourceVO;
-									try {
-										JdbcUtils.getJdbcClient("rimdbTest").querySingleWithParams("select sf_get_source_from_db(?,?,?) from dual", new JsonArray().add(dataBaseVO.getType()).add(dataBaseVO.getUser()).add(dataBaseVO.getResName()), jsonArrayAsyncResult -> {
-											if (jsonArrayAsyncResult.succeeded()) {
-												String content = (jsonArrayAsyncResult.result()).getString(0);
-												try {
-													ResourceVO.writeZip(zipOutputStream, content, dataBaseVO.getUser() + "-" + dataBaseVO.getResName());
-													promise.complete();
-												} catch (IOException e) {
-													errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
-													promise.fail(e);
-												}
-											} else {
-												promise.fail(jsonArrayAsyncResult.cause());
-											}
-										});
-
-									} catch (Exception e) {
-										e.printStackTrace();
-										errorFile.add(dataBaseVO.toString() + " " + e.getMessage());
-										promise.fail(e);
-									}
-								})
-						)
-						.collect(Collectors.toList()))
-				.onComplete(compositeFuture -> {
-					handler.handle(null);
+		return Future.future(promise -> {
+			try {
+				JdbcUtils.getJdbcClient("rimdbTest").querySingleWithParams("select sf_get_source_from_db(?,?,?) from dual", new JsonArray().add(this.getType()).add(this.getUser()).add(this.getResName()), jsonArrayAsyncResult -> {
+					if (jsonArrayAsyncResult.succeeded()) {
+						String content = (jsonArrayAsyncResult.result()).getString(0);
+						try {
+							ResourceVO.writeZip(zipOutputStream, content, this.getUser() + "-" + this.getResName());
+							promise.complete();
+						} catch (IOException e) {
+							errorFile.add(this.toString() + " " + e.getMessage());
+							promise.fail(e);
+						}
+					} else {
+						promise.fail(jsonArrayAsyncResult.cause());
+					}
 				});
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				errorFile.add(this.toString() + " " + e.getMessage());
+				promise.fail(e);
+			}
+		});
 	}
 
 

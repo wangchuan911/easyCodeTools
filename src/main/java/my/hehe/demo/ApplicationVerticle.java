@@ -8,6 +8,7 @@ import my.hehe.demo.common.annotation.Verticle;
 import org.reflections.Reflections;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -19,23 +20,8 @@ public class ApplicationVerticle extends AbstractVerticle {
 		deploy().accept(vertx);
 	}
 
-	private static Consumer<Vertx> deploy() {
+	Consumer<Vertx> deploy() {
 		Consumer<Vertx> runner = vertx -> {
-      /*DeploymentOptions workerDeploymentOptions = new DeploymentOptions()
-        .setWorker(true)
-        // As worker verticles are never executed concurrently by Vert.x by more than one thread,
-        // deploySingle multiple instances to avoid serializing requests.
-        .setInstances(4)
-        .setConfig(vertx.getOrCreateContext().config());
-      vertx.deployVerticle(WorkVerticle.class.getName(), workerDeploymentOptions);
-
-      DeploymentOptions webDeploymentOptions = new DeploymentOptions()
-        .setConfig(vertx.getOrCreateContext().config());
-      vertx.deployVerticle(WebVerticle.class.getName(), webDeploymentOptions);
-
-      DeploymentOptions webDeploymentOptions1 = new DeploymentOptions()
-        .setConfig(vertx.getOrCreateContext().config());
-      vertx.deployVerticle(WebSocketVerticle.class.getName(), webDeploymentOptions1);*/
 			Reflections reflections = ReflectionUtils.getReflection();
 			Set<Class<?>> classes = reflections.getTypesAnnotatedWith(Verticle.class);
 			for (Class<?> verticleClass : classes) {
@@ -57,13 +43,13 @@ public class ApplicationVerticle extends AbstractVerticle {
 		return runner;
 	}
 
-	private void toolInit() {
+	void toolInit() {
 		Reflections reflections = ReflectionUtils.getReflection();
-		Set<Method> methods = reflections.getMethodsAnnotatedWith(UtilsInital.class);
-		for (Method method : methods) {
-			method.setAccessible(true);
+		Set<Constructor> constructors = reflections.getConstructorsAnnotatedWith(UtilsInital.class);
+		for (Constructor constructor : constructors) {
+			constructor.setAccessible(true);
 			try {
-				Class<?>[] types = method.getParameterTypes();
+				Class<?>[] types = constructor.getParameterTypes();
 				Object[] args = new Object[types.length];
 				for (int i = 0; i < types.length; i++) {
 					Class<?> type = types[i];
@@ -75,7 +61,7 @@ public class ApplicationVerticle extends AbstractVerticle {
 						args[i] = null;
 					}
 				}
-				method.invoke(null, args);
+				constructor.newInstance(args);
 
 			} catch (Throwable e) {
 				e.printStackTrace();

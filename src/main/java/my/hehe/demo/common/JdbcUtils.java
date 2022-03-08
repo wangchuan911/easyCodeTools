@@ -23,7 +23,7 @@ public class JdbcUtils {
   }
 
   @UtilsInital
-  static void initUtil(Vertx vertx, JsonObject jsonObject) {
+  JdbcUtils(Vertx vertx, JsonObject jsonObject) {
     try {
       JDBCClient rimdbTest = null;
       {

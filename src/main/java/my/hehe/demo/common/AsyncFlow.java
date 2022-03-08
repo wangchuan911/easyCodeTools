@@ -274,7 +274,7 @@ public class AsyncFlow {
 	}
 
 	@UtilsInital
-	static void initUtil(Vertx vertx) {
+	AsyncFlow(Vertx vertx) {
 		try {
 			AsyncFlow.vertx = vertx;
 		} catch (Throwable e) {

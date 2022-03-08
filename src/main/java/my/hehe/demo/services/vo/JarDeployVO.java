@@ -63,7 +63,7 @@ public class JarDeployVO extends ClassDeployVO {
 		try {
 			if (fileList.size() == 0) return;
 			System.out.println();
-			String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), fileList.stream().collect(Collectors.joining(isWindows ? "' '" : " ")));
+			String command = String.format(CMD, this.getPath(), System.getProperty("jarBinPath"), newFile.getName(), fileList.stream().map(s -> !isWindows && s.indexOf("$") >= 0 ? s.replaceAll("\\$", "\\\\\\$") : s).collect(Collectors.joining(isWindows ? "' '" : " ")));
 			System.out.println(command);
 			if (isWindows) {
 				Runtime.getRuntime().exec(command).waitFor();

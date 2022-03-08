@@ -5,7 +5,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import my.hehe.demo.common.JdbcUtils;
-import my.hehe.demo.common.annotation.ResTypeCheck;
 import my.hehe.demo.common.annotation.ResZip;
 
 import java.io.BufferedInputStream;
@@ -14,7 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
-public class TextBaseVO extends ResourceVO {
+public class TextBaseVO extends ResourceVO implements ResZip {
 	private String type;
 	private String user;
 
@@ -46,8 +45,8 @@ public class TextBaseVO extends ResourceVO {
 				'}';
 	}
 
-	@ResTypeCheck
-	public static ResourceVO createRes(String text) {
+	@Override
+	public ResourceVO createRes(String text) {
 		final String key = "TEXT:";
 		int idx = -1;
 		if ((text.toUpperCase().indexOf(key)) < 0) return null;
@@ -57,8 +56,8 @@ public class TextBaseVO extends ResourceVO {
 		return new TextBaseVO().setType("TEXT").setResContent(text).setResName(name);
 	}
 
-	@ResZip
-	public static void zipDataFile(ZipOutputStream zipOutputStream, Set<ResourceVO> textBaseVOS, Set<String> errorFile, Handler<Void> handler) throws Exception {
+	@Override
+	public Future<Void> zipDataFile(ZipOutputStream zipOutputStream, Set<String> errorFile) {
 		BufferedInputStream bis = null;
     /*AtomicInteger atomicInteger = new AtomicInteger(0);
     for (ResourceVO resourceVO : textBaseVOS) {
@@ -79,23 +78,15 @@ public class TextBaseVO extends ResourceVO {
         }
       }
     }*/
-		CompositeFuture.all(textBaseVOS
-				.stream()
-				.filter(resourceVO -> resourceVO instanceof TextBaseVO)
-				.map(resourceVO ->
-						Future.future(promise -> {
-							TextBaseVO textBase = (TextBaseVO) resourceVO;
-							try {
-								ResourceVO.writeZip(zipOutputStream, textBase.getResContent(), textBase.getResName() + ".txt");
-								promise.complete();
-							} catch (IOException e) {
-								e.printStackTrace();
-								errorFile.add(textBase.toString() + " " + e.getMessage());
-								promise.fail(e);
-							}
-						})
-				).collect(Collectors.toList())).onComplete(compositeFuture -> {
-			handler.handle(null);
+		return Future.future(promise -> {
+			try {
+				ResourceVO.writeZip(zipOutputStream, this.getResContent(), this.getResName() + ".txt");
+				promise.complete();
+			} catch (IOException e) {
+				e.printStackTrace();
+				errorFile.add(this.toString() + " " + e.getMessage());
+				promise.fail(e);
+			}
 		});
 
 	}
