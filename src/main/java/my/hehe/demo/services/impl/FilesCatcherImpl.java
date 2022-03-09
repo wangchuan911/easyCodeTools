@@ -6,15 +6,17 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import my.hehe.demo.common.*;
 import my.hehe.demo.common.annotation.ReflectionUtils;
+import my.hehe.demo.common.annotation.ResMatched;
 import my.hehe.demo.common.annotation.ResZip;
 import my.hehe.demo.services.FilesCatcher;
 import my.hehe.demo.services.vo.ResourceVO;
 import org.reflections.Reflections;
 
 import java.io.*;
-import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -37,7 +39,17 @@ public class FilesCatcherImpl implements FilesCatcher {
 	Set<String> pathsSourse = null;
 	Map sourceToBuild = null;
 	String tmpFilePath = null;
-	Set<ResZip> resZips = null;
+	ResMatchedInfo[] resMetchedInfos;
+
+	class ResMatchedInfo {
+		Constructor constructor;
+		Function<String, Boolean> matched;
+
+		public ResMatchedInfo(Constructor constructor, Function<String, Boolean> matched) {
+			this.constructor = constructor;
+			this.matched = matched;
+		}
+	}
 
 	private FilesCatcherImpl() {
 
@@ -93,16 +105,16 @@ public class FilesCatcherImpl implements FilesCatcher {
 		sourceToBuild = config.getJsonObject("sourceToBuild").getMap();
 
 		Reflections reflections = ReflectionUtils.getReflection();
-		resZips = reflections.getSubTypesOf(ResZip.class).stream().map(aClass -> {
+		resMetchedInfos = reflections.getConstructorsAnnotatedWith(ResMatched.class).stream().map(constructor -> {
+			ResMatched resMatched = constructor.getDeclaredAnnotation(ResMatched.class);
+			Class<?> functionClass = resMatched.value();
 			try {
-				return aClass.newInstance();
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
+				return new ResMatchedInfo(constructor, (Function<String, Boolean>) functionClass.newInstance());
+			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 			return null;
-		}).collect(Collectors.toSet());
+		}).toArray(ResMatchedInfo[]::new);
 	}
 
 	final static boolean isWindows = System.getProperty("os.name") != null && System.getProperty("os.name").indexOf("Windows") >= 0;
@@ -553,22 +565,21 @@ public class FilesCatcherImpl implements FilesCatcher {
 				.compose(catchData -> {
 					catchData.fileList.stream().forEach(fileName -> {
 						ResourceVO resourceVO = null;
-						for (ResZip resZip : resZips) {
-							try {
-								resourceVO = resZip.createRes(fileName);
-								if (resourceVO != null) {
+						for (ResMatchedInfo resZip : resMetchedInfos) {
+							if (resZip.matched.apply(fileName)) {
+								try {
+									resourceVO = (ResourceVO) resZip.constructor.newInstance(fileName);
 									catchData.unSimpleFiles.add(resourceVO);
 									catchData.classSet.add(resourceVO.getClass());
 									break;
+								} catch (Throwable e) {
+									e.printStackTrace();
+									catchData.errorFile.add(fileName + " " + e.getMessage());
 								}
-							} catch (Throwable e) {
-								e.printStackTrace();
-								catchData.errorFile.add(fileName + " " + e.getMessage());
 							}
 						}
-						if (resourceVO == null) {
+						if (resourceVO == null)
 							getFile(catchData.simpleFiles, catchData.errorFile, fileName);
-						}
 					});
 					return Future.succeededFuture(catchData);
 				})

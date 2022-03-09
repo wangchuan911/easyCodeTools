@@ -13,6 +13,4 @@ import java.util.zip.ZipOutputStream;
 
 public interface ResZip {
 	Future<Void> zipDataFile(ZipOutputStream zipOutputStream, Set<String> errorFile);
-
-	ResourceVO createRes(String text);
 }

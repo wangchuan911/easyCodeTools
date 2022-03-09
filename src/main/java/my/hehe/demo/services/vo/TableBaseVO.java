@@ -5,18 +5,21 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import my.hehe.demo.common.JdbcUtils;
+import my.hehe.demo.common.annotation.ResMatched;
 import my.hehe.demo.common.annotation.ResZip;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
 public class TableBaseVO extends ResourceVO implements ResZip {
 	private String type;
 	private String user;
+	final static String key = "TABLE:";
 
 	public String getType() {
 		return type;
@@ -51,12 +54,17 @@ public class TableBaseVO extends ResourceVO implements ResZip {
 				'}';
 	}
 
-	@Override
-	public ResourceVO createRes(String text) {
-		final String key = "TABLE:";
-		if (text.toUpperCase().indexOf(key) < 0) return null;
+	@ResMatched(Matched.class)
+	public TableBaseVO(String text) {
 		String[] var = text.split(":")[1].split("@");
-		return new TableBaseVO().setUser(var[1].toUpperCase()).setType(key.substring(0, key.length() - 1)).setResName(var[0].toUpperCase());
+		this.setUser(var[1].toUpperCase()).setType(key.substring(0, key.length() - 1)).setResName(var[0].toUpperCase());
+	}
+
+	public static class Matched implements Function<String, Boolean> {
+		@Override
+		public Boolean apply(String s) {
+			return !(s.toUpperCase().indexOf(key) < 0);
+		}
 	}
 
 	@Override

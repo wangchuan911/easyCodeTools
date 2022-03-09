@@ -5,11 +5,13 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import my.hehe.demo.common.JdbcUtils;
+import my.hehe.demo.common.annotation.ResMatched;
 import my.hehe.demo.common.annotation.ResZip;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
@@ -50,13 +52,19 @@ public class DataBaseVO extends ResourceVO implements ResZip {
 				'}';
 	}
 
-	@Override
-	public ResourceVO createRes(String text) {
-		if (text.toUpperCase().indexOf("DATA:") < 0) return null;
+	@ResMatched(Matched.class)
+	public DataBaseVO(String text) {
 		String[] var = text.split(":")[1].split("\\.");
-		return new DataBaseVO().setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase());
+		this.setUser(var[0].toUpperCase()).setType(var[1].toUpperCase()).setResName(var[2].toUpperCase());
 	}
 
+	public static class Matched implements Function<String, Boolean> {
+
+		@Override
+		public Boolean apply(String s) {
+			return !(s.toUpperCase().indexOf("DATA:") < 0);
+		}
+	}
 
 	@Override
 	public Future<Void> zipDataFile(ZipOutputStream zipOutputStream, Set<String> errorFile) {
