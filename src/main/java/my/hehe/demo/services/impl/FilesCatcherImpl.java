@@ -217,9 +217,8 @@ public class FilesCatcherImpl implements FilesCatcher {
 			});*/
 
 	@Override
-	public void dual(Set<String> fileList, Handler<AsyncResult<String>> outputBodyHandler) {
+	public Future<String> dual(Set<String> fileList) {
 		Promise promise = Promise.promise();
-		promise.future().onComplete(outputBodyHandler);
 		if (fileList == null || fileList.size() == 0) {
 			promise.fail(new NullPointerException());
 		}
@@ -344,6 +343,7 @@ public class FilesCatcherImpl implements FilesCatcher {
 //			if (!flow.isError())
 //				promise.complete(zipOfFile.getAbsolutePath());
 //		}).start();
+		return promise.future();
 	}
 
 	private File careateZipFile() {

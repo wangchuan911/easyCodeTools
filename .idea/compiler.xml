@@ -7,9 +7,12 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processor name="io.vertx.codegen.CodeGenProcessor" />
-        <module name="easyCodeTools" />
         <module name="demo" />
+        <module name="easyCodeTools" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="easyCodeTools" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>

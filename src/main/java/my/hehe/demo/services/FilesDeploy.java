@@ -28,5 +28,5 @@ public interface FilesDeploy {
 				.build(FilesDeploy.class);
 	}
 
-	void dual(String zipfile, Handler<AsyncResult<String>> outputBodyHandler);
+	Future<String> dual(String zipfile);
 }

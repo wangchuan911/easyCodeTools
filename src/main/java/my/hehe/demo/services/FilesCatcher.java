@@ -27,5 +27,5 @@ public interface FilesCatcher {
 				.build(FilesCatcher.class);
 	}
 
-	void dual(Set<String> fileList, Handler<AsyncResult<String>> outputBodyHandler);
+	Future<String> dual(Set<String> fileList);
 }

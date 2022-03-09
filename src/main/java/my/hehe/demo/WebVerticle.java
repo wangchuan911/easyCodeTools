@@ -104,7 +104,7 @@ public class WebVerticle extends AbstractVerticle {
 				}
 			}
 
-			filesCatcher.dual(listSet, stringAsyncResult -> {
+			filesCatcher.dual(listSet).onComplete(stringAsyncResult -> {
 				if (stringAsyncResult.succeeded()) {
 					System.out.println("success!");
 					HttpServerResponse httpServerResponse = routingContext.response();
@@ -165,7 +165,7 @@ public class WebVerticle extends AbstractVerticle {
 			CompositeFuture.all(fileUploads.stream().map(fileUpload ->
 					Future.future(promise -> {
 						String uploadFile = fileUpload.uploadedFileName();
-						filesDeploy.dual(uploadFile, stringAsyncResult -> {
+						filesDeploy.dual(uploadFile).onComplete(stringAsyncResult -> {
 							if (stringAsyncResult.failed()) {
 								result.append(stringAsyncResult.cause().getMessage()).append('\n');
 								promise.fail(stringAsyncResult.cause());

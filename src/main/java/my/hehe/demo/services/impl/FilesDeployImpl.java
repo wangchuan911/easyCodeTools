@@ -158,19 +158,16 @@ public class FilesDeployImpl implements FilesDeploy {
 
 
 	@Override
-	public void dual(String zipFile, Handler<AsyncResult<String>> outputBodyHandler) {
-		Promise promise = Promise.promise();
-		promise.future().onComplete(outputBodyHandler);
+	public Future<String> dual(String zipFile) {
 		if (onceUser.get() > 0) {
-			promise.fail("人多");
-			return;
+			return Future.failedFuture("人多");
 		}
 
 		if (zipFile == null || zipFile.length() == 0) {
-			promise.fail(new NullPointerException());
-			return;
+			return Future.failedFuture(new NullPointerException());
 		}
 
+		Promise promise = Promise.promise();
 		DeployData deployData = new DeployData();
 		deployData.zipFile = zipFile;
 		onceUser.incrementAndGet();
@@ -199,6 +196,7 @@ public class FilesDeployImpl implements FilesDeploy {
 				promise.fail(deployDataAsyncResult.cause());
 			}
 		});
+		return promise.future();
 	}
 
 	class DeployData {
